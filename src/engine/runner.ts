@@ -15,14 +15,19 @@ export class EngineRunner {
     return this.violations;
   }
 
-  private walk(node: unknown) {
+  private walk(node: unknown, parentNode: TSESTree.Node | null = null) {
     if (!node || typeof node !== "object") return;
 
-    // Type guard: Check if this object is an AST Node
     const isAstNode = "type" in node && typeof node.type === "string";
 
     if (isAstNode) {
       const astNode = node as TSESTree.Node;
+
+      // Safely assign parent pointer without using 'any'
+      if (parentNode) {
+        const mutableNode = astNode as unknown as Record<string, unknown>;
+        mutableNode.parent = parentNode;
+      }
 
       this.rules.forEach((rule) => {
         const context = {
@@ -38,21 +43,32 @@ export class EngineRunner {
         const visitor = visitors[astNode.type as AST_NODE_TYPES];
 
         if (visitor) {
-          // Execute the visitor. We assert the function signature internally.
           (visitor as (n: TSESTree.Node) => void)(astNode);
         }
       });
-    }
 
-    // Recursively traverse child properties
-    for (const key in node) {
-      if (key === "parent" || key === "loc" || key === "range") continue;
+      // Pass current AST node down as the parent for children
+      for (const key in astNode) {
+        if (key === "parent" || key === "loc" || key === "range") continue;
 
-      const child = (node as Record<string, unknown>)[key];
-      if (Array.isArray(child)) {
-        child.forEach((c) => this.walk(c));
-      } else if (child && typeof child === "object") {
-        this.walk(child);
+        const child = (astNode as unknown as Record<string, unknown>)[key];
+        if (Array.isArray(child)) {
+          child.forEach((c) => this.walk(c, astNode));
+        } else if (child && typeof child === "object") {
+          this.walk(child, astNode);
+        }
+      }
+    } else {
+      // Traverse plain wrapper objects/arrays recursively
+      for (const key in node) {
+        if (key === "parent" || key === "loc" || key === "range") continue;
+
+        const child = (node as Record<string, unknown>)[key];
+        if (Array.isArray(child)) {
+          child.forEach((c) => this.walk(c, parentNode));
+        } else if (child && typeof child === "object") {
+          this.walk(child, parentNode);
+        }
       }
     }
   }
