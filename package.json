@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "npx tsx --test test/**/*.test.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
