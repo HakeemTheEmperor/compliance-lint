@@ -4,6 +4,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { LinterCache } from "@/src/engine/cache";
 import { reportToConsole, FileReport } from "@/src/reporters/console";
+import { Violation } from "@/src/engine/types";
 
 void test("Phase 4 DX Components: Cache and Reporter", async (t) => {
   const tempCachePath = path.join(process.cwd(), ".test-gdpr-cache.json");
@@ -22,12 +23,13 @@ void test("Phase 4 DX Components: Cache and Reporter", async (t) => {
       const cache = new LinterCache(tempCachePath);
       const testFile = "src/controllers/user.controller.ts";
       const initialContent = "const x = 1;";
-      const mockViolations = [
+      const mockViolations: Violation[] = [
         {
           ruleId: "gdpr/minimal-data-collected",
           message: "Test violation",
           line: 1,
           column: 1,
+          severity: "error",
         },
       ];
 
@@ -63,12 +65,14 @@ void test("Phase 4 DX Components: Cache and Reporter", async (t) => {
               message: "Log error",
               line: 10,
               column: 5,
+              severity: "error",
             },
             {
               ruleId: "gdpr/missing-consent-flag",
               message: "Warning issue",
               line: 20,
               column: 2,
+              severity: "warn",
             },
           ],
         },

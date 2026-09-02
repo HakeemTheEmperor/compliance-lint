@@ -9,6 +9,12 @@ const DEFAULT_CONFIG: ComplianceConfig = {
     "gdpr/minimal-data-collected": "error",
     "gdpr/data-retention-missing": "warn",
     "gdpr/explicit-pii-logging": "error",
+    "gdpr/overly-broad-select": "warn",
+    "gdpr/missing-consent-flag": "error",
+    "gdpr/missing-erasure-cascade": "error",
+    "gdpr/third-party-pii-leak": "error",
+    "gdpr/unencrypted-pii-column": "error",
+    "gdpr/unprotected-export-route": "error",
   },
 };
 
