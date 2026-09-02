@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import * as assert from "node:assert";
-import { EngineRunner } from "../../../src/engine/runner";
+import { EngineRunner } from "@/src/engine/runner";
 import { parse } from "@typescript-eslint/typescript-estree";
-import { piiUnhashedStorageRule } from "../../../src/rules/gdpr/pii-unhashed-storage";
+import { piiUnhashedStorageRule } from "@/src/rules/gdpr/pii-unhashed-storage";
 
 test("Rule: gdpr/pii-unhashed-storage", async (t) => {
   const runner = new EngineRunner([piiUnhashedStorageRule]);

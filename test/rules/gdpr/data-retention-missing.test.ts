@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import * as assert from "node:assert";
-import { EngineRunner } from "../../../src/engine/runner";
+import { EngineRunner } from "@/src/engine/runner";
 import { parse } from "@typescript-eslint/typescript-estree";
-import { dataRetentionMissingRule } from "../../../src/rules/gdpr/data-retention-missing";
+import { dataRetentionMissingRule } from "@/src/rules/gdpr/data-retention-missing";
 
 test("Rule: gdpr/data-retention-missing", async (t) => {
   const runner = new EngineRunner([dataRetentionMissingRule]);
