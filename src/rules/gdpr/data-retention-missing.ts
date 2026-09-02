@@ -1,5 +1,5 @@
 import { TSESTree } from "@typescript-eslint/typescript-estree";
-import { Rule } from "../../engine/types";
+import { Rule } from "@/src/engine/types";
 
 const RETENTION_FIELD_PATTERNS = [
   "expiresat",

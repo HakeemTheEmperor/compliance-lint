@@ -1,5 +1,5 @@
 import { TSESTree } from "@typescript-eslint/typescript-estree";
-import { Rule } from "../../engine/types";
+import { Rule } from "@/src/engine/types";
 
 const SENSITIVE_FIELDS = ["password", "ssn", "pin", "social_security"];
 const VALID_DECORATORS = ["Hash", "Exclude", "Encrypt", "Transform"];
