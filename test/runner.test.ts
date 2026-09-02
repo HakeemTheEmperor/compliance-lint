@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import * as assert from "node:assert";
-import { EngineRunner } from "../src/engine/runner";
-import { Rule } from "../src/engine/types";
+import { EngineRunner } from "@/src/engine/runner";
+import { Rule } from "@/src/engine/types";
 import { parse } from "@typescript-eslint/typescript-estree";
 
 void test("EngineRunner should traverse AST and report rule violations", () => {

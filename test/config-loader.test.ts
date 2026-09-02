@@ -2,7 +2,7 @@ import { test } from "node:test";
 import * as assert from "node:assert";
 import * as fs from "fs";
 import * as path from "path";
-import { loadConfig } from "../src/config/config-loader";
+import { loadConfig } from "@/src/config/config-loader";
 
 void test("Config Loader", async (t) => {
   const testDir = path.join(__dirname, "mock-env");
