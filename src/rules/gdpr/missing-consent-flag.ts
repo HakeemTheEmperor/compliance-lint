@@ -14,6 +14,7 @@ const CONSENT_IDENTIFIERS = [
   "agreed",
   "termsaccepted",
   "optin",
+  "terms",
 ];
 
 export const missingConsentFlagRule: Rule = {
@@ -23,7 +24,6 @@ export const missingConsentFlagRule: Rule = {
   create(context) {
     return {
       MethodDefinition(node) {
-        // Target class methods that look like registration or sign-up endpoints
         if (node.key.type !== TSESTree.AST_NODE_TYPES.Identifier) return;
         const methodName = node.key.name.toLowerCase();
 
@@ -33,14 +33,12 @@ export const missingConsentFlagRule: Rule = {
 
         if (!isRegistrationMethod) return;
 
-        // Inspect method parameters for @Body() or DTO payloads
         const params = node.value.params;
         let hasConsentField = false;
 
         params.forEach((param) => {
           if (param.type !== TSESTree.AST_NODE_TYPES.Identifier) return;
 
-          // Check if the parameter has a type annotation (DTO name)
           const typeAnnotation = param.typeAnnotation?.typeAnnotation;
           if (
             typeAnnotation &&
@@ -48,11 +46,14 @@ export const missingConsentFlagRule: Rule = {
           ) {
             const typeName = typeAnnotation.typeName;
             if (typeName.type === TSESTree.AST_NODE_TYPES.Identifier) {
-              // Heuristic: Check if DTO name explicitly mentions consent/terms
-              if (
-                typeName.name.toLowerCase().includes("consent") ||
-                typeName.name.toLowerCase().includes("terms")
-              ) {
+              const lowerTypeName = typeName.name.toLowerCase();
+
+              // Properly evaluate against CONSENT_IDENTIFIERS array
+              const matchesConsent = CONSENT_IDENTIFIERS.some((identifier) =>
+                lowerTypeName.includes(identifier),
+              );
+
+              if (matchesConsent) {
                 hasConsentField = true;
               }
             }
