@@ -18,3 +18,10 @@ export interface Rule {
     [K in AST_NODE_TYPES]?: (node: Extract<TSESTree.Node, { type: K }>) => void;
   };
 }
+
+export type RuleSeverity = "error" | "warn" | "off";
+
+export interface ComplianceConfig {
+  ignore: string[];
+  rules: Record<string, RuleSeverity>;
+}
