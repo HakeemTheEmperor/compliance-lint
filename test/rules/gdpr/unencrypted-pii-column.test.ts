@@ -4,7 +4,7 @@ import { EngineRunner } from "@/src/engine/runner";
 import { parse } from "@typescript-eslint/typescript-estree";
 import { unencryptedPiiColumnRule } from "@/src/rules/gdpr/unencrypted-pii-column";
 
-test("Rule: gdpr/unencrypted-pii-column", async (t) => {
+void test("Rule: gdpr/unencrypted-pii-column", async (t) => {
   const runner = new EngineRunner([unencryptedPiiColumnRule]);
 
   await t.test(

@@ -25,7 +25,7 @@ export function loadConfig(cwd: string = process.cwd()): ComplianceConfig {
         ignore: parsedConfig.ignore || DEFAULT_CONFIG.ignore,
         rules: { ...DEFAULT_CONFIG.rules, ...parsedConfig.rules },
       };
-    } catch (error) {
+    } catch {
       console.warn(
         `[Warning] Failed to parse compliance.json. Using default configurations.`,
       );

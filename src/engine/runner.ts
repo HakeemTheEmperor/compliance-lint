@@ -1,4 +1,4 @@
-import { AST_NODE_TYPES, TSESTree } from "@typescript-eslint/typescript-estree";
+import { TSESTree } from "@typescript-eslint/typescript-estree";
 import { Rule, Violation } from "./types";
 
 export class EngineRunner {
@@ -40,7 +40,7 @@ export class EngineRunner {
         };
 
         const visitors = rule.create(context);
-        const visitor = visitors[astNode.type as AST_NODE_TYPES];
+        const visitor = visitors[astNode.type];
 
         if (visitor) {
           (visitor as (n: TSESTree.Node) => void)(astNode);

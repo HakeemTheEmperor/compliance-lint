@@ -4,7 +4,7 @@ import { EngineRunner } from "@/src/engine/runner";
 import { parse } from "@typescript-eslint/typescript-estree";
 import { missingErasureCascadeRule } from "@/src/rules/gdpr/missing-erasure-cascade";
 
-test("Rule: gdpr/missing-erasure-cascade", async (t) => {
+void test("Rule: gdpr/missing-erasure-cascade", async (t) => {
   const runner = new EngineRunner([missingErasureCascadeRule]);
 
   await t.test("flags relation missing onDelete CASCADE", () => {
