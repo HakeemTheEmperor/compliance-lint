@@ -1,3 +1,4 @@
+import { TSESTree } from "@typescript-eslint/typescript-estree";
 import { generateAST } from "./engine/parser";
 
 const targetFile = "./test/dummy.dto.ts";
@@ -11,8 +12,8 @@ try {
     console.log(`Node [${index}]: Type -> ${node.type}`);
 
     if (
-      node.type === "ExportNamedDeclaration" &&
-      node.declaration?.type === "ClassDeclaration"
+      node.type === TSESTree.AST_NODE_TYPES.ExportNamedDeclaration &&
+      node.declaration?.type === TSESTree.AST_NODE_TYPES.ClassDeclaration
     ) {
       const className = node.declaration.id?.name;
       console.log(`Found Class: ${className}`);
@@ -21,8 +22,8 @@ try {
       const classBody = node.declaration.body.body;
       classBody.forEach((prop) => {
         if (
-          prop.type === "PropertyDefinition" &&
-          prop.key.type === "Identifier"
+          prop.type === TSESTree.AST_NODE_TYPES.PropertyDefinition &&
+          prop.key.type === TSESTree.AST_NODE_TYPES.Identifier
         ) {
           console.log(
             ` - Property: ${prop.key.name} (Lines: ${prop.loc.start.line} to ${prop.loc.end.line})`,

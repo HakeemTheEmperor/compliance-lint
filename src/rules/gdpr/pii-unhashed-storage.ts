@@ -12,7 +12,7 @@ export const piiUnhashedStorageRule: Rule = {
     return {
       PropertyDefinition(node) {
         // 1. Ensure the property has a standard name identifier
-        if (node.key.type !== "Identifier") return;
+        if (node.key.type !== TSESTree.AST_NODE_TYPES.Identifier) return;
 
         const propertyName = node.key.name.toLowerCase();
 
@@ -21,19 +21,18 @@ export const piiUnhashedStorageRule: Rule = {
           // 3. Check if any decorators are attached to this property (Strictly Typed!)
           const hasSecurityDecorator = node.decorators?.some(
             (decorator: TSESTree.Decorator) => {
+              const expr = decorator.expression;
               // Matches decorators with parentheses: @Hash() or @Exclude()
-              if (
-                decorator.expression.type === "CallExpression" &&
-                decorator.expression.callee.type === "Identifier"
-              ) {
-                return VALID_DECORATORS.includes(
-                  decorator.expression.callee.name,
-                );
+              if (expr.type === TSESTree.AST_NODE_TYPES.CallExpression) {
+                const callee = expr.callee;
+                if (callee.type === TSESTree.AST_NODE_TYPES.Identifier) {
+                  return VALID_DECORATORS.includes(callee.name);
+                }
               }
 
               // Matches decorators without parentheses: @Exclude
-              if (decorator.expression.type === "Identifier") {
-                return VALID_DECORATORS.includes(decorator.expression.name);
+              if (expr.type === TSESTree.AST_NODE_TYPES.Identifier) {
+                return VALID_DECORATORS.includes(expr.name);
               }
 
               return false;
@@ -44,8 +43,8 @@ export const piiUnhashedStorageRule: Rule = {
           if (!hasSecurityDecorator) {
             context.report({
               message: `Sensitive field '${node.key.name}' lacks a hashing or exclusion decorator. Violates GDPR Article 32.`,
-              line: node.loc?.start.line || 0, // Safely fallback to 0 if loc is missing
-              column: node.loc?.start.column || 0, // Safely fallback to 0 if loc is missing
+              line: node.loc?.start.line ?? 0, // Safely fallback to 0 if loc is missing
+              column: node.loc?.start.column ?? 0, // Safely fallback to 0 if loc is missing
             });
           }
         }

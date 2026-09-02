@@ -4,7 +4,7 @@ import { EngineRunner } from "@/src/engine/runner";
 import { parse } from "@typescript-eslint/typescript-estree";
 import { dataRetentionMissingRule } from "@/src/rules/gdpr/data-retention-missing";
 
-test("Rule: gdpr/data-retention-missing", async (t) => {
+void test("Rule: gdpr/data-retention-missing", async (t) => {
   const runner = new EngineRunner([dataRetentionMissingRule]);
 
   await t.test("flags entity missing retention fields or policies", () => {

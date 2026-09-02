@@ -4,7 +4,7 @@ import { EngineRunner } from "../src/engine/runner";
 import { Rule } from "../src/engine/types";
 import { parse } from "@typescript-eslint/typescript-estree";
 
-test("EngineRunner should traverse AST and report rule violations", () => {
+void test("EngineRunner should traverse AST and report rule violations", () => {
   // 1. Setup a dummy AST in memory (no file reading needed for this test)
   const code = `
     export class CreateUserDto {

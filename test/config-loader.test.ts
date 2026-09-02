@@ -4,7 +4,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { loadConfig } from "../src/config/config-loader";
 
-test("Config Loader", async (t) => {
+void test("Config Loader", async (t) => {
   const testDir = path.join(__dirname, "mock-env");
 
   await t.test("returns default config when no file exists", () => {
