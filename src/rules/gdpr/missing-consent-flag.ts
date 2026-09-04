@@ -1,13 +1,7 @@
 import { TSESTree } from "@typescript-eslint/typescript-estree";
 import { Rule } from "@/src/engine/types";
 
-const REGISTRATION_KEYWORDS = [
-  "register",
-  "signup",
-  "create",
-  "onboard",
-  "subscribe",
-];
+const REGISTRATION_KEYWORDS = ["register", "signup", "onboard", "subscribe"];
 const CONSENT_IDENTIFIERS = [
   "consent",
   "gdprconsent",

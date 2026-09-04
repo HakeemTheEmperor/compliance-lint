@@ -4,9 +4,14 @@ import { Rule, Violation } from "./types";
 export class EngineRunner {
   private rules: Rule[];
   private violations: Violation[] = [];
+  private ruleConfig: Record<string, string>;
 
-  constructor(rules: Rule[]) {
-    this.rules = rules;
+  constructor(rules: Rule[], ruleConfig: Record<string, string> = {}) {
+    this.rules = rules.filter((rule) => {
+      const severity = ruleConfig[rule.id];
+      return severity !== "off";
+    });
+    this.ruleConfig = ruleConfig;
   }
 
   run(ast: TSESTree.Program): Violation[] {
@@ -31,9 +36,13 @@ export class EngineRunner {
 
       this.rules.forEach((rule) => {
         const context = {
-          report: (violation: Omit<Violation, "ruleId">) => {
+          report: (violation: Omit<Violation, "ruleId" | "severity">) => {
+            const configuredSeverity = this.ruleConfig[rule.id];
+            const severity: "error" | "warn" =
+              configuredSeverity === "warn" ? "warn" : "error";
             this.violations.push({
               ruleId: rule.id,
+              severity,
               ...violation,
             });
           },

@@ -5,10 +5,11 @@ export interface Violation {
   message: string;
   line: number;
   column: number;
+  severity: "error" | "warn";
 }
 
 export interface RuleContext {
-  report(violation: Omit<Violation, "ruleId">): void;
+  report(violation: Omit<Violation, "ruleId" | "severity">): void;
 }
 
 export interface Rule {
