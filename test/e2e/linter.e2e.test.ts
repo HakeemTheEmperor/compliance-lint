@@ -4,11 +4,11 @@ import * as fs from "node:fs";
 import { parse } from "@typescript-eslint/typescript-estree";
 import { EngineRunner } from "@/src/engine/runner";
 import { allRules } from "@/src/rules";
-import { LinterCache } from "@/src/engine/cache";
+// import { LinterCache } from "@/src/engine/cache";
 
 void test("Phase 5 E2E: Compliance Fixtures Verification", async (t) => {
   const runner = new EngineRunner(allRules);
-  const cache = new LinterCache(".test-e2e-cache.json");
+  // const cache = new LinterCache(".test-e2e-cache.json");
 
   // Cleanup cache helper
   t.after(() => {
