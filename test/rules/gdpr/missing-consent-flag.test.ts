@@ -8,9 +8,14 @@ void test("Rule: gdpr/missing-consent-flag", async (t) => {
   const runner = new EngineRunner([missingConsentFlagRule]);
 
   await t.test(
-    "flags registration methods lacking consent DTO references",
+    "flags registration methods lacking consent DTO properties",
     () => {
       const code = `
+      export class CreateUserDto {
+        email: string;
+        password: string;
+      }
+
       @Controller("auth")
       export class AuthController {
         @Post("register")
@@ -28,9 +33,15 @@ void test("Rule: gdpr/missing-consent-flag", async (t) => {
   );
 
   await t.test(
-    "passes when registration method includes a consent-backed DTO",
+    "passes when registration method uses a DTO containing a consent property",
     () => {
       const code = `
+      export class CreateUserWithConsentDto {
+        email: string;
+        password: string;
+        isAgreed: boolean;
+      }
+
       @Controller("auth")
       export class AuthController {
         @Post("register")
