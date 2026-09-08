@@ -1,0 +1,79 @@
+name: "🚀 Propose a new core rule"
+description: "Propose a new compliance rule to be added to ComplianceLint's core."
+title: "New Rule: [rule-id]"
+labels:
+  - rule
+  - feature
+body:
+  - type: input
+    attributes:
+      label: Rule details
+      description: What should the new rule do?
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Relevant Regulation
+      description: What regulation and articles does the rule relate to? (e.g., GDPR Article 6, NDPR Section 2.1)
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Target Layer
+      description: Which architectural layer does this rule target?
+      options:
+        - API
+        - Database
+        - Service
+        - Integration
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: What type of rule / severity is this?
+      options:
+        - Error (Fails the CI/CD pipeline on violation)
+        - Warn (Flags a potential compliance risk)
+        - Suggestion (Proposes an alternate compliant pattern)
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Example code
+      description: Please provide some example TypeScript code that this rule will flag.
+      render: ts
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Proposed Remediation / Fix
+      description: How should developers fix this violation? What does compliant code look like?
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Why should this rule be in the core instead of a plugin?
+      description: In general, we prefer that niche rules be implemented via plugins. Why is this universally essential for core compliance?
+    validations:
+      required: true
+  - type: checkboxes
+    attributes:
+      label: Participation
+      options:
+        - label: I am willing to submit a pull request to implement this rule.
+          required: false
+  - type: markdown
+    attributes:
+      value: Please **do not** open a pull request until this issue has been accepted by the team.
+  - type: checkboxes
+    attributes:
+      label: AI acknowledgment
+      options:
+        - label: I did not use AI to generate this issue report.
+          required: false
+        - label: (If the above is not checked) I have reviewed the AI-generated content before submitting.
+          required: false
+  - type: textarea
+    attributes:
+      label: Additional comments
+      description: Is there anything else that's important for the team to know?

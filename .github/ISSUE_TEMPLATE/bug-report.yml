@@ -1,0 +1,100 @@
+name: "🐞 Report a problem"
+description: "Report an issue with ComplianceLint or bundled core rules"
+title: "Bug: [Short description]"
+labels:
+  - bug
+  - "repro:needed"
+body:
+  - type: markdown
+    attributes:
+      value: By opening an issue, you agree to abide by our project's Code of Conduct.
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Please tell us about your runtime environment.
+      value: |
+        Node version:
+        npm version:
+        ComplianceLint version:
+        Operating System:
+    validations:
+      required: true
+  - type: dropdown
+    id: parser
+    attributes:
+      label: What parser are you using?
+      description: ComplianceLint uses `@typescript-eslint/typescript-estree`. Note any custom parser configs if applicable.
+      options:
+        - "@typescript-eslint/typescript-estree (Default)"
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What did you do?
+      description: |
+        Please include a *minimal* reproduction case. Include your `compliance.json` configuration and the source code snippet that triggered the unexpected behavior.
+      placeholder: |
+        <details>
+        <summary>Compliance Config</summary>
+
+        ```json
+        {
+          "rules": {
+            "gdpr/missing-consent-flag": "error"
+          }
+        }
+        ```
+        </details>
+
+        ```ts
+        // Paste your TS code here
+        ```
+    validations:
+      required: true
+  - type: textarea
+    id: expectation
+    attributes:
+      label: What did you expect to happen?
+      description: Describe what the linter *should* have done (e.g., passed cleanly or flagged a specific violation).
+    validations:
+      required: true
+  - type: textarea
+    id: lint-output
+    attributes:
+      label: What actually happened?
+      description: Copy-paste the actual ComplianceLint terminal output or error stack trace.
+    validations:
+      required: true
+  - type: input
+    id: repro-url
+    attributes:
+      label: Link to Minimal Reproducible Example
+      description: Link to a GitHub repository or CodeSandbox/StackBlitz with a minimal reproduction of the problem.
+      placeholder: "https://github.com/username/compliance-lint-repro"
+    validations:
+      required: true
+  - type: checkboxes
+    attributes:
+      label: Participation
+      options:
+        - label: I am willing to submit a pull request to fix this bug.
+          required: false
+  - type: markdown
+    attributes:
+      value: Please **do not** open a pull request until this issue has been accepted or discussed.
+  - type: checkboxes
+    attributes:
+      label: AI acknowledgment
+      options:
+        - label: I did not use AI to generate this issue report.
+          required: false
+        - label: (If the above is not checked) I have reviewed the AI-generated content before submitting.
+          required: false
+  - type: textarea
+    id: comments
+    attributes:
+      label: Additional comments
+      description: Is there anything else that's important for the team to know?

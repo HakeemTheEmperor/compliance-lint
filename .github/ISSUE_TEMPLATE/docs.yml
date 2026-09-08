@@ -1,0 +1,51 @@
+name: "📝 Docs"
+description: "Request an improvement to ComplianceLint documentation"
+title: "Docs: [topic/page]"
+labels:
+  - documentation
+body:
+  - type: markdown
+    attributes:
+      value: By opening an issue, you agree to abide by our project's Code of Conduct.
+  - type: textarea
+    attributes:
+      label: Docs page(s) or Section
+      description: What page(s), README section, or guide are you suggesting be changed or created?
+      placeholder: e.g., README.md, Rules reference table, or Custom Rule Guide
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What documentation issue do you want to solve?
+      description: Please explain what is unclear, missing, or inaccurate in the current documentation.
+      placeholder: The documentation for compliance rules currently lacks...
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What do you think is the correct solution?
+      description: Please explain how you'd like the documentation updated to address the problem.
+      placeholder: I'd like the guide to include an example of...
+    validations:
+      required: true
+  - type: checkboxes
+    attributes:
+      label: Participation
+      options:
+        - label: I am willing to submit a pull request for this documentation change.
+          required: false
+  - type: markdown
+    attributes:
+      value: Please **do not** open a pull request until this documentation issue has been accepted by the team.
+  - type: checkboxes
+    attributes:
+      label: AI acknowledgment
+      options:
+        - label: I did not use AI to generate this issue report.
+          required: false
+        - label: (If the above is not checked) I have reviewed the AI-generated content before submitting.
+          required: false
+  - type: textarea
+    attributes:
+      label: Additional comments
+      description: Is there anything else that's important for the team to know?
