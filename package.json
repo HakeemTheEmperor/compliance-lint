@@ -2,7 +2,10 @@
   "name": "complinter",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/cli.js",
+  "files": [
+    "dist"
+  ],
   "bin": {
     "complint": "./dist/cli.js"
   },
@@ -15,7 +18,7 @@
     "prepublishOnly": "npm run build"
   },
   "keywords": [],
-  "author": "",
+  "author": "Toluwalase Akinyemi",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
