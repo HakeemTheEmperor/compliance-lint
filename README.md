@@ -95,6 +95,19 @@ npm run lint
 npm run build
 ```
 
+## Publishing
+
+Publishing is automated by [`.github/workflows/publish.yml`](.github/workflows/publish.yml) when a GitHub release is published.
+
+Before the first release:
+
+1. Create the `complinter` package on npm, or confirm that the package is owned by the publishing account.
+2. In npm package settings, add a trusted publisher for this repository, the `main` branch, and the `publish.yml` workflow.
+3. Update the version in `package.json` and commit it to `main`.
+4. Create and publish a GitHub release whose tag matches that version, for example `v1.0.1`.
+
+The workflow uses npm trusted publishing with OIDC and package provenance, so no `NPM_TOKEN` repository secret is required. To publish manually instead, run `npm login`, then `npm publish --access public` from the repository root.
+
 ## 🤝 Contributing
 
 We welcome contributions! Add focused tests for new AST behavior and keep rule documentation alongside the implementation. See the [Contributing Guide](CONTRIBUTING.md) for setup, development workflow, rule authoring, testing, and pull request guidance.

@@ -1,0 +1,84 @@
+name: Automatic labels
+
+on:
+    issues:
+        types: [opened, reopened]
+    pull_request_target:
+        types: [opened, reopened, synchronize]
+
+permissions:
+    contents: read
+    issues: write
+    pull-requests: write
+
+jobs:
+    label:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Apply labels
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const labelDefinitions = {
+                        bug: { color: 'd73a4a', description: 'Something is not working' },
+                        fix: { color: 'b60205', description: 'Fixes a bug or defect' },
+                        feature: { color: 'a2eeef', description: 'Adds a new capability' },
+                        enhancement: { color: '84b6eb', description: 'Improves existing functionality' },
+                        documentation: { color: '0075ca', description: 'Documentation changes' },
+                        rule: { color: '5319e7', description: 'Compliance rule changes' },
+                        'needs-triage': { color: 'fbca04', description: 'Needs maintainer review' },
+                        'repro:needed': { color: 'f9d0c4', description: 'Needs a reproduction' }
+                      };
+
+                      const ensureLabel = async (name, definition) => {
+                        try {
+                          await github.rest.issues.getLabel({
+                            owner: context.repo.owner,
+                            repo: context.repo.repo,
+                            name
+                          });
+                        } catch (error) {
+                          if (error.status !== 404) throw error;
+                          await github.rest.issues.createLabel({
+                            owner: context.repo.owner,
+                            repo: context.repo.repo,
+                            name,
+                            ...definition
+                          });
+                        }
+                      };
+
+                      const isPullRequest = Boolean(context.payload.pull_request);
+                      const item = context.payload.issue ?? context.payload.pull_request;
+                      const text = `${item.title}\n${item.body ?? ''}`.toLowerCase();
+                      const labels = new Set(['needs-triage']);
+
+                      if (/\b(bug|broken|regression|error|crash)\b/.test(text)) labels.add('bug');
+                      if (/\b(fix|fixes|fixed|resolve|resolves|resolved)\b/.test(text)) labels.add('fix');
+                      if (/\b(feature|feat|new rule|request)\b/.test(text)) labels.add('feature');
+                      if (/\b(enhancement|improve|improvement|refactor)\b/.test(text)) labels.add('enhancement');
+                      if (/\b(doc|docs|documentation|readme)\b/.test(text)) labels.add('documentation');
+                      if (/\b(rule|gdpr|compliance)\b/.test(text)) labels.add('rule');
+
+                      if (isPullRequest) {
+                        const files = await github.paginate(github.rest.pulls.listFiles, {
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          pull_number: context.payload.pull_request.number,
+                          per_page: 100
+                        });
+                        const paths = files.map((file) => file.filename).join('\n').toLowerCase();
+                        if (/^(docs\/|.*\.md$)|readme/.test(paths)) labels.add('documentation');
+                        if (/^(src\/rules\/|docs\/rules\/)/.test(paths)) labels.add('rule');
+                      }
+
+                      for (const label of labels) {
+                        await ensureLabel(label, labelDefinitions[label]);
+                      }
+
+                      await github.rest.issues.addLabels({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        issue_number: item.number,
+                        labels: [...labels]
+                      });
