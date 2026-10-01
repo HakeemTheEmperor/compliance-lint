@@ -1,5 +1,5 @@
-import { TSESTree } from "@typescript-eslint/typescript-estree";
-import { Violation } from "./types";
+import type { Violation } from "./types";
+import type { SourceComment } from "./language";
 
 const DIRECTIVE = /^\s*compliance-(ignore(?:-next-line)?)\b\s*(.*)$/;
 
@@ -19,7 +19,7 @@ function parseRuleIds(rest: string): string[] | null {
  */
 export function applySuppressions(
   violations: Violation[],
-  comments: TSESTree.Comment[],
+  comments: readonly SourceComment[],
 ): Violation[] {
   if (comments.length === 0 || violations.length === 0) return violations;
 

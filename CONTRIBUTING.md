@@ -45,12 +45,14 @@ repository later.
 packages/
   core/                          # @complinter/core (private for now)
     src/index.ts                 # Public entry point; other packages import only from here
-    src/engine/                  # runner, file discovery, cache, suppression, types
+    src/engine/                  # runner, language adapters, file discovery, cache,
+                                 # suppression, tree walking, types
     src/config/config-loader.ts  # compliance.json loading, validation, defaults
     src/reporters/               # console, json, sarif
     test/
   lang-typescript/               # @complinter/lang-typescript
     src/parse-file.ts            # Source -> AST (+ comments)
+    src/adapter.ts               # typescriptAdapter and the defineRule helper
     test/
   rules-gdpr/                    # @complinter/rules-gdpr
     src/index.ts                 # Rule registry (allRules)
@@ -118,6 +120,8 @@ export const exampleRule: Rule = {
   },
 };
 ```
+
+Rules are written for one language. A rule's optional `language` field names the language adapter it runs on and defaults to `"typescript"`, so the existing rules need no change. Rules for the TypeScript vocabulary can also be written with `defineRule` from `@complinter/lang-typescript`, which types the visitor parameters and rejects unknown visitor names (`npm run typecheck` enforces this).
 
 `create(context)` is called **once per file**, not once per node, so state kept in the closure (for example a registry collected in a `Program` visitor) is shared by every visitor for that file.
 

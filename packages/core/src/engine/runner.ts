@@ -1,85 +1,116 @@
 import { TSESTree } from "@typescript-eslint/typescript-estree";
-import { Rule, Violation } from "./types";
+import { DEFAULT_LANGUAGE, Violation } from "./types";
+import {
+  AnyAdapter,
+  AnyRule,
+  assertLanguagesRegistered,
+} from "./language";
+import { applySuppressions } from "./suppress";
+import { walkTypedTree } from "./walk";
 
-type Visitor = (node: TSESTree.Node) => void;
+type Visitor = (node: unknown) => void;
 type VisitorMap = Record<string, Visitor | undefined>;
 
-export class EngineRunner {
-  private rules: Rule[];
-  private violations: Violation[] = [];
-  private ruleConfig: Record<string, string>;
+/** What the engine needs from an adapter to walk a parsed tree. */
+interface TreeWalker {
+  id: string;
+  walk(root: unknown, visit: (type: string, node: unknown) => void): void;
+}
 
-  constructor(rules: Rule[], ruleConfig: Record<string, string> = {}) {
+/** Walker used by `run(ast)`: a bare ESTree program, as before adapters existed. */
+const TYPED_TREE_WALKER: TreeWalker = {
+  id: DEFAULT_LANGUAGE,
+  walk: (root, visit) => walkTypedTree(root, visit),
+};
+
+export class EngineRunner {
+  private rules: readonly AnyRule[];
+  private ruleConfig: Record<string, string>;
+  private adapters: readonly AnyAdapter[];
+
+  constructor(
+    rules: readonly AnyRule[],
+    ruleConfig: Record<string, string> = {},
+    adapters: readonly AnyAdapter[] = [],
+  ) {
+    if (adapters.length > 0) {
+      assertLanguagesRegistered(adapters, rules);
+    }
     this.rules = rules.filter((rule) => {
       const severity = ruleConfig[rule.id];
       return severity !== "off";
     });
     this.ruleConfig = ruleConfig;
+    this.adapters = adapters;
   }
 
+  /** True when a registered adapter handles this file name. */
+  supportsFile(filePath: string): boolean {
+    return this.adapterFor(filePath) !== undefined;
+  }
+
+  /**
+   * Parses and analyses one file with the adapter registered for its
+   * extension, then applies inline suppression comments. Files no adapter
+   * handles yield no violations. Parse errors are thrown to the caller.
+   */
+  lintSource(source: string, filePath: string): Violation[] {
+    const adapter = this.adapterFor(filePath);
+    if (!adapter) return [];
+
+    const parsed = adapter.parse(source, filePath);
+    const violations = this.runTree(adapter, parsed.tree, {
+      filename: filePath,
+      sourceText: source,
+    });
+    return applySuppressions(violations, parsed.comments);
+  }
+
+  /** Runs the TypeScript-language rules over an already parsed ESTree program. */
   run(ast: TSESTree.Program): Violation[] {
-    this.violations = [];
+    return this.runTree(TYPED_TREE_WALKER, ast, {});
+  }
+
+  private runTree(
+    walker: TreeWalker,
+    tree: unknown,
+    info: { filename?: string; sourceText?: string },
+  ): Violation[] {
+    const violations: Violation[] = [];
 
     // Each rule is instantiated once per file so that state captured in
     // create() (e.g. a pre-collected class registry) survives the whole walk.
-    const visitorMaps: VisitorMap[] = this.rules.map((rule) =>
-      rule.create({
-        report: (violation) => {
-          const configuredSeverity = this.ruleConfig[rule.id];
-          const severity: "error" | "warn" =
-            configuredSeverity === "warn" ? "warn" : "error";
-          this.violations.push({ ruleId: rule.id, severity, ...violation });
-        },
-      }) as VisitorMap,
-    );
+    const visitorMaps: VisitorMap[] = this.rules
+      .filter((rule) => (rule.language ?? DEFAULT_LANGUAGE) === walker.id)
+      .map(
+        (rule) =>
+          rule.create({
+            filename: info.filename ?? "",
+            sourceText: info.sourceText ?? "",
+            report: (violation) => {
+              const configuredSeverity = this.ruleConfig[rule.id];
+              const severity: "error" | "warn" =
+                configuredSeverity === "warn" ? "warn" : "error";
+              violations.push({ ruleId: rule.id, severity, ...violation });
+            },
+          }) as VisitorMap,
+      );
 
-    this.walk(ast, null, visitorMaps);
-    return this.violations;
+    walker.walk(tree, (type, node) => {
+      for (const visitors of visitorMaps) {
+        visitors[type]?.(node);
+      }
+    });
+    return violations;
   }
 
-  private walk(
-    node: unknown,
-    parentNode: TSESTree.Node | null,
-    visitorMaps: VisitorMap[],
-  ) {
-    if (!node || typeof node !== "object") return;
-
-    const isAstNode = "type" in node && typeof node.type === "string";
-
-    if (isAstNode) {
-      const astNode = node as TSESTree.Node;
-
-      // Safely assign parent pointer without using 'any'
-      if (parentNode) {
-        const mutableNode = astNode as unknown as Record<string, unknown>;
-        mutableNode.parent = parentNode;
-      }
-
-      for (const visitors of visitorMaps) {
-        visitors[astNode.type]?.(astNode);
-      }
-    }
-
-    // AST nodes become the parent of their children; plain wrapper
-    // objects/arrays pass the current parent through unchanged.
-    const nextParent = isAstNode ? (node as TSESTree.Node) : parentNode;
-
-    for (const key in node) {
-      if (
-        key === "parent" ||
-        key === "loc" ||
-        key === "range" ||
-        key === "tokens" ||
-        key === "comments"
-      )
-        continue;
-
-      const child = (node as Record<string, unknown>)[key];
-      if (Array.isArray(child)) {
-        child.forEach((c) => this.walk(c, nextParent, visitorMaps));
-      } else if (child && typeof child === "object") {
-        this.walk(child, nextParent, visitorMaps);
-      }
-    }
+  private adapterFor(filePath: string): AnyAdapter | undefined {
+    return this.adapters.find(
+      (adapter) =>
+        adapter.extensions.some((ext) => filePath.endsWith(ext)) &&
+        !(adapter.excludeSuffixes ?? []).some((suffix) =>
+          filePath.endsWith(suffix),
+        ),
+    );
   }
 }

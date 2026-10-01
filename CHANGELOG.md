@@ -31,6 +31,8 @@
 ### Internal
 
 - Converted the repository to an npm workspaces monorepo: `packages/core`, `packages/lang-typescript`, `packages/rules-gdpr` and `packages/complinter` (the CLI). Pure move; behavior, rule ids, config, CLI output and exit codes are unchanged (verified by the golden-output tests).
+- Added a language adapter abstraction (`LanguageAdapter`, `Rule<Nodes>`, `AnyRule`, `createRuleFactory`, `eraseAdapter`) in `@complinter/core` and a `typescriptAdapter` in `@complinter/lang-typescript`. The runner picks the adapter by file extension and runs only the rules for that language; file discovery asks the runner which files it supports. `RuleContext` now also provides `filename` and `sourceText`. Existing rules, `EngineRunner.run(ast)` and all outputs are unchanged.
+- Added `npm run typecheck` (also run in CI) so type-level tests are enforced.
 - Tests run through `scripts/run-tests.mjs`, which expands test files itself instead of relying on shell or Node glob support.
 - The workspace packages are not published yet; `complinter` is marked `private` until the build bundles its internal packages.
 

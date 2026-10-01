@@ -4,7 +4,6 @@ import { parseArgs } from "node:util";
 import {
   EngineRunner,
   getFiles,
-  applySuppressions,
   reportToConsole,
   formatJson,
   formatSarif,
@@ -12,9 +11,10 @@ import {
   hashContent,
   loadConfig,
   ConfigError,
+  eraseAdapter,
 } from "@complinter/core";
 import type { FileReport } from "@complinter/core";
-import { parseSource } from "@complinter/lang-typescript";
+import { typescriptAdapter } from "@complinter/lang-typescript";
 import { allRules } from "@complinter/rules-gdpr";
 import { getVersion } from "./version";
 
@@ -95,8 +95,12 @@ export function runCli(argv: string[], cwd: string = process.cwd()): number {
     throw err;
   }
 
-  const files = getFiles(targetDir, config.ignore);
-  const runner = new EngineRunner(allRules, config.rules);
+  const runner = new EngineRunner(allRules, config.rules, [
+    eraseAdapter(typescriptAdapter),
+  ]);
+  const files = getFiles(targetDir, config.ignore, targetDir, (name) =>
+    runner.supportsFile(name),
+  );
   const cache = values["no-cache"]
     ? null
     : new LinterCache(
@@ -129,8 +133,7 @@ export function runCli(argv: string[], cwd: string = process.cwd()): number {
     }
 
     try {
-      const { ast, comments } = parseSource(code, file);
-      const violations = applySuppressions(runner.run(ast), comments);
+      const violations = runner.lintSource(code, file);
 
       cache?.setCachedViolations(file, code, violations);
       reports.push({ filePath: file, violations });

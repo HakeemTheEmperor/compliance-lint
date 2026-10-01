@@ -21,3 +21,22 @@ export { reportToConsole } from "./reporters/console";
 export type { FileReport } from "./reporters/console";
 export { formatJson } from "./reporters/json";
 export { formatSarif } from "./reporters/sarif";
+export type {
+  NodeMap,
+  Visitors,
+  TsNodes,
+} from "./engine/types";
+export { DEFAULT_LANGUAGE } from "./engine/types";
+export type {
+  LanguageAdapter,
+  AnyAdapter,
+  AnyRule,
+  ParseResult,
+  SourceComment,
+} from "./engine/language";
+export {
+  assertLanguagesRegistered,
+  createRuleFactory,
+  eraseAdapter,
+} from "./engine/language";
+export { walkTypedTree } from "./engine/walk";

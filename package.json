@@ -10,6 +10,7 @@
     "test:coverage": "c8 --reporter=text --reporter=lcov node scripts/run-tests.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "typecheck": "tsc -p tsconfig.json",
     "clean": "tsc -b --clean tsconfig.build.json",
     "build": "tsc -b tsconfig.build.json"
   },

@@ -47,3 +47,28 @@ void test("File discovery picks up TS/JS sources and skips declaration files", (
     fs.rmSync(rootDir, { recursive: true, force: true });
   }
 });
+
+void test("File discovery accepts a custom source-file matcher", () => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "compliance-lint-"));
+
+  try {
+    fs.mkdirSync(path.join(rootDir, "nested"));
+    fs.writeFileSync(path.join(rootDir, "a.toy"), "");
+    fs.writeFileSync(path.join(rootDir, "a.ts"), "");
+    fs.writeFileSync(path.join(rootDir, "nested", "b.toy"), "");
+
+    const files = getFiles(rootDir, [], rootDir, (name) =>
+      name.endsWith(".toy"),
+    );
+
+    assert.deepStrictEqual(
+      files.sort(),
+      [
+        path.join(rootDir, "a.toy"),
+        path.join(rootDir, "nested", "b.toy"),
+      ].sort(),
+    );
+  } finally {
+    fs.rmSync(rootDir, { recursive: true, force: true });
+  }
+});

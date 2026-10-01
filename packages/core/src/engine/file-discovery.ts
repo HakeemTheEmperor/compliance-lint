@@ -3,7 +3,11 @@ import * as path from "node:path";
 
 export const SOURCE_EXTENSIONS = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx"];
 
-function isSourceFile(fileName: string): boolean {
+/**
+ * Default predicate, kept so callers that pass no matcher behave as before.
+ * Language adapters supply their own via the `isSource` argument.
+ */
+function isDefaultSourceFile(fileName: string): boolean {
   if (fileName.endsWith(".d.ts")) return false;
   return SOURCE_EXTENSIONS.some((ext) => fileName.endsWith(ext));
 }
@@ -58,6 +62,7 @@ export function getFiles(
   dir: string,
   ignorePatterns: string[] = ["node_modules", "dist", ".git"],
   rootDir: string = dir,
+  isSource: (fileName: string) => boolean = isDefaultSourceFile,
 ): string[] {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   let files: string[] = [];
@@ -74,8 +79,10 @@ export function getFiles(
     }
 
     if (entry.isDirectory()) {
-      files = files.concat(getFiles(fullPath, ignorePatterns, rootDir));
-    } else if (entry.isFile() && isSourceFile(entry.name)) {
+      files = files.concat(
+        getFiles(fullPath, ignorePatterns, rootDir, isSource),
+      );
+    } else if (entry.isFile() && isSource(entry.name)) {
       files.push(fullPath);
     }
   }
