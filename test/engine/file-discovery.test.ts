@@ -29,3 +29,21 @@ void test("File discovery", () => {
     fs.rmSync(rootDir, { recursive: true, force: true });
   }
 });
+
+void test("File discovery picks up TS/JS sources and skips declaration files", () => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "compliance-lint-"));
+
+  try {
+    for (const name of ["a.ts", "b.tsx", "c.js", "d.jsx", "e.mts", "types.d.ts", "notes.md"]) {
+      fs.writeFileSync(path.join(rootDir, name), "");
+    }
+
+    const names = getFiles(rootDir, [])
+      .map((f) => path.basename(f))
+      .sort();
+
+    assert.deepStrictEqual(names, ["a.ts", "b.tsx", "c.js", "d.jsx", "e.mts"]);
+  } finally {
+    fs.rmSync(rootDir, { recursive: true, force: true });
+  }
+});

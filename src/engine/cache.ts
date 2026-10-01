@@ -9,19 +9,35 @@ interface CacheEntry {
 
 interface CacheStore {
   version: string;
+  fingerprint: string;
   files: Record<string, CacheEntry>;
 }
 
 const CACHE_FILE_PATH = ".gdpr-cache.json";
-const CACHE_VERSION = "1.0.0";
+const CACHE_VERSION = "2";
 
+export function hashContent(content: string): string {
+  return crypto.createHash("sha256").update(content).digest("hex");
+}
+
+/**
+ * Content-hash cache. The `fingerprint` captures everything other than the
+ * file content that affects results (tool version, rule set, config); when it
+ * changes the whole cache is discarded.
+ */
 export class LinterCache {
   private store: CacheStore;
   private cacheFilePath: string;
+  private fingerprint: string;
 
-  constructor(cachePath: string = CACHE_FILE_PATH) {
+  constructor(cachePath: string = CACHE_FILE_PATH, fingerprint: string = "") {
     this.cacheFilePath = cachePath;
+    this.fingerprint = fingerprint;
     this.store = this.loadCache();
+  }
+
+  private emptyStore(): CacheStore {
+    return { version: CACHE_VERSION, fingerprint: this.fingerprint, files: {} };
   }
 
   private loadCache(): CacheStore {
@@ -29,24 +45,26 @@ export class LinterCache {
       if (fs.existsSync(this.cacheFilePath)) {
         const raw = fs.readFileSync(this.cacheFilePath, "utf-8");
         const parsed = JSON.parse(raw) as CacheStore;
-        if (parsed.version === CACHE_VERSION) {
+        if (
+          parsed.version === CACHE_VERSION &&
+          parsed.fingerprint === this.fingerprint
+        ) {
           return parsed;
         }
       }
     } catch {
       // Fallback to fresh cache if corrupted
     }
-    return { version: CACHE_VERSION, files: {} };
+    return this.emptyStore();
   }
 
   public getCachedViolations(
     filePath: string,
     content: string,
   ): Violation[] | null {
-    const hash = crypto.createHash("md5").update(content).digest("hex");
     const entry = this.store.files[filePath];
 
-    if (entry && entry.hash === hash) {
+    if (entry && entry.hash === hashContent(content)) {
       return entry.violations;
     }
     return null;
@@ -57,8 +75,7 @@ export class LinterCache {
     content: string,
     violations: Violation[],
   ): void {
-    const hash = crypto.createHash("md5").update(content).digest("hex");
-    this.store.files[filePath] = { hash, violations };
+    this.store.files[filePath] = { hash: hashContent(content), violations };
   }
 
   public saveCache(): void {

@@ -1,6 +1,13 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
+export const SOURCE_EXTENSIONS = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx"];
+
+function isSourceFile(fileName: string): boolean {
+  if (fileName.endsWith(".d.ts")) return false;
+  return SOURCE_EXTENSIONS.some((ext) => fileName.endsWith(ext));
+}
+
 function patternToRegExp(pattern: string): RegExp {
   const normalizedPattern = pattern.replace(/\\/g, "/").replace(/^\.\//, "");
   let expression = "";
@@ -68,7 +75,7 @@ export function getFiles(
 
     if (entry.isDirectory()) {
       files = files.concat(getFiles(fullPath, ignorePatterns, rootDir));
-    } else if (entry.isFile() && fullPath.endsWith(".ts")) {
+    } else if (entry.isFile() && isSourceFile(entry.name)) {
       files.push(fullPath);
     }
   }

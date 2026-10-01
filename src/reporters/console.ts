@@ -1,5 +1,5 @@
 import * as path from "node:path";
-import { Violation, ComplianceConfig, RuleSeverity } from "@/src/engine/types";
+import { Violation, ComplianceConfig } from "@/src/engine/types";
 
 export interface FileReport {
   filePath: string;
@@ -14,17 +14,15 @@ export function reportToConsole(
   let totalWarnings = 0;
 
   reports.forEach((report) => {
-    if (report.violations.length === 0) return;
+    const visible = report.violations.filter(
+      (v) => config?.rules[v.ruleId] !== "off",
+    );
+    if (visible.length === 0) return;
 
     console.log(`\n\x1b[4m${path.resolve(report.filePath)}\x1b[0m`);
 
-    report.violations.forEach((v) => {
-      const configuredSeverity: RuleSeverity =
-        config?.rules[v.ruleId] ?? "error";
-
-      if (configuredSeverity === "off") return;
-
-      const isError = configuredSeverity === "error";
+    visible.forEach((v) => {
+      const isError = v.severity === "error";
       if (isError) totalErrors++;
       else totalWarnings++;
 
@@ -33,11 +31,10 @@ export function reportToConsole(
         : "\x1b[33mwarn\x1b[0m";
 
       const location = `  ${v.line}:${v.column}`;
-      const message = v.message;
       const ruleId = `\x1b[2m${v.ruleId}\x1b[0m`;
 
       console.log(
-        `${location.padEnd(10)} ${severityLabel.padEnd(12)} ${message}  ${ruleId}`,
+        `${location.padEnd(10)} ${severityLabel.padEnd(12)} ${v.message}  ${ruleId}`,
       );
     });
   });

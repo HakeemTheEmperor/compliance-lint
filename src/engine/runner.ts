@@ -1,6 +1,9 @@
 import { TSESTree } from "@typescript-eslint/typescript-estree";
 import { Rule, Violation } from "./types";
 
+type Visitor = (node: TSESTree.Node) => void;
+type VisitorMap = Record<string, Visitor | undefined>;
+
 export class EngineRunner {
   private rules: Rule[];
   private violations: Violation[] = [];
@@ -16,11 +19,29 @@ export class EngineRunner {
 
   run(ast: TSESTree.Program): Violation[] {
     this.violations = [];
-    this.walk(ast);
+
+    // Each rule is instantiated once per file so that state captured in
+    // create() (e.g. a pre-collected class registry) survives the whole walk.
+    const visitorMaps: VisitorMap[] = this.rules.map((rule) =>
+      rule.create({
+        report: (violation) => {
+          const configuredSeverity = this.ruleConfig[rule.id];
+          const severity: "error" | "warn" =
+            configuredSeverity === "warn" ? "warn" : "error";
+          this.violations.push({ ruleId: rule.id, severity, ...violation });
+        },
+      }) as VisitorMap,
+    );
+
+    this.walk(ast, null, visitorMaps);
     return this.violations;
   }
 
-  private walk(node: unknown, parentNode: TSESTree.Node | null = null) {
+  private walk(
+    node: unknown,
+    parentNode: TSESTree.Node | null,
+    visitorMaps: VisitorMap[],
+  ) {
     if (!node || typeof node !== "object") return;
 
     const isAstNode = "type" in node && typeof node.type === "string";
@@ -34,50 +55,30 @@ export class EngineRunner {
         mutableNode.parent = parentNode;
       }
 
-      this.rules.forEach((rule) => {
-        const context = {
-          report: (violation: Omit<Violation, "ruleId" | "severity">) => {
-            const configuredSeverity = this.ruleConfig[rule.id];
-            const severity: "error" | "warn" =
-              configuredSeverity === "warn" ? "warn" : "error";
-            this.violations.push({
-              ruleId: rule.id,
-              severity,
-              ...violation,
-            });
-          },
-        };
-
-        const visitors = rule.create(context);
-        const visitor = visitors[astNode.type];
-
-        if (visitor) {
-          (visitor as (n: TSESTree.Node) => void)(astNode);
-        }
-      });
-
-      // Pass current AST node down as the parent for children
-      for (const key in astNode) {
-        if (key === "parent" || key === "loc" || key === "range") continue;
-
-        const child = (astNode as unknown as Record<string, unknown>)[key];
-        if (Array.isArray(child)) {
-          child.forEach((c) => this.walk(c, astNode));
-        } else if (child && typeof child === "object") {
-          this.walk(child, astNode);
-        }
+      for (const visitors of visitorMaps) {
+        visitors[astNode.type]?.(astNode);
       }
-    } else {
-      // Traverse plain wrapper objects/arrays recursively
-      for (const key in node) {
-        if (key === "parent" || key === "loc" || key === "range") continue;
+    }
 
-        const child = (node as Record<string, unknown>)[key];
-        if (Array.isArray(child)) {
-          child.forEach((c) => this.walk(c, parentNode));
-        } else if (child && typeof child === "object") {
-          this.walk(child, parentNode);
-        }
+    // AST nodes become the parent of their children; plain wrapper
+    // objects/arrays pass the current parent through unchanged.
+    const nextParent = isAstNode ? (node as TSESTree.Node) : parentNode;
+
+    for (const key in node) {
+      if (
+        key === "parent" ||
+        key === "loc" ||
+        key === "range" ||
+        key === "tokens" ||
+        key === "comments"
+      )
+        continue;
+
+      const child = (node as Record<string, unknown>)[key];
+      if (Array.isArray(child)) {
+        child.forEach((c) => this.walk(c, nextParent, visitorMaps));
+      } else if (child && typeof child === "object") {
+        this.walk(child, nextParent, visitorMaps);
       }
     }
   }
