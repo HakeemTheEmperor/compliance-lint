@@ -28,6 +28,12 @@
 - Pull-request CI workflow; the publish workflow now lints and tests first.
 - LICENSE, package metadata, `test:coverage` script.
 
+### Internal
+
+- Converted the repository to an npm workspaces monorepo: `packages/core`, `packages/lang-typescript`, `packages/rules-gdpr` and `packages/complinter` (the CLI). Pure move; behavior, rule ids, config, CLI output and exit codes are unchanged (verified by the golden-output tests).
+- Tests run through `scripts/run-tests.mjs`, which expands test files itself instead of relying on shell or Node glob support.
+- The workspace packages are not published yet; `complinter` is marked `private` until the build bundles its internal packages.
+
 ### Removed
 
 - Unused `src/engine/parser.ts`, the `src/test-run.ts` scratch script and its fixture.

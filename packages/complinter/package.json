@@ -1,0 +1,43 @@
+{
+  "name": "complinter",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static analysis CLI that flags GDPR/privacy compliance risks in TypeScript and JavaScript code.",
+  "main": "dist/cli.js",
+  "files": [
+    "dist"
+  ],
+  "bin": {
+    "complint": "./dist/cli.js"
+  },
+  "keywords": [
+    "gdpr",
+    "compliance",
+    "privacy",
+    "linter",
+    "static-analysis",
+    "ast",
+    "typescript",
+    "cli"
+  ],
+  "author": "Toluwalase Akinyemi",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@complinter/core": "*",
+    "@complinter/lang-typescript": "*",
+    "@complinter/rules-gdpr": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HakeemTheEmperor/compliance-lint.git",
+    "directory": "packages/complinter"
+  },
+  "homepage": "https://github.com/HakeemTheEmperor/compliance-lint#readme",
+  "bugs": {
+    "url": "https://github.com/HakeemTheEmperor/compliance-lint/issues"
+  },
+  "engines": {
+    "node": ">=18.3.0"
+  }
+}

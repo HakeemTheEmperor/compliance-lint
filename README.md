@@ -116,16 +116,16 @@ Omit the rule id to suppress every rule on that line. Use suppressions sparingly
 
 | Rule                                                                           | Purpose                           | Details                                                                                                                 |
 | ------------------------------------------------------------------------------ | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| [`gdpr/minimal-data-collected`](docs/rules/gdpr/minimal-data-collected.md)     | Require structured request bodies | Flags route methods with `@Body()` parameters that have no type or use `any`.                                           |
-| [`gdpr/overly-broad-select`](docs/rules/gdpr/overly-broad-select.md)           | Limit query fields                | Flags `find`, `findOne`, `findAndCount`, and `findAll` calls on repository/model/service-like receivers without an options object containing `select`.             |
-| [`gdpr/data-retention-missing`](docs/rules/gdpr/data-retention-missing.md)     | Require retention signals         | Checks `@Entity()` classes and classes extending `Model` for recognized retention fields or decorators.                 |
-| [`gdpr/explicit-pii-logging`](docs/rules/gdpr/explicit-pii-logging.md)         | Reduce sensitive logging          | Flags known sensitive identifiers and request/user properties passed to recognized logger calls.                        |
-| [`gdpr/missing-consent-flag`](docs/rules/gdpr/missing-consent-flag.md)         | Require consent-related DTOs      | Checks registration-like methods for a parameter type that has a consent property (in a class declared in the same file) or a consent keyword in its name.                            |
-| [`gdpr/missing-erasure-cascade`](docs/rules/gdpr/missing-erasure-cascade.md)   | Preserve deletion propagation     | Flags `ManyToOne`, `OneToOne`, and `BelongsTo` relations without `onDelete` of `CASCADE` or `SET NULL`.                                 |
-| [`gdpr/pii-unhashed-storage`](docs/rules/gdpr/pii-unhashed-storage.md)         | Protect highly sensitive fields   | Flags exact field names such as `password`, `ssn`, `pin`, and `social_security` without an accepted security decorator. |
-| [`gdpr/third-party-pii-leak`](docs/rules/gdpr/third-party-pii-leak.md)         | Review outbound PII transfers     | Flags known payload identifiers and request/user properties passed to recognized HTTP clients.                          |
-| [`gdpr/unencrypted-pii-column`](docs/rules/gdpr/unencrypted-pii-column.md)     | Encrypt high-risk columns         | Flags exact high-risk field names in TypeORM entities or Sequelize models without encryption or a transformer.          |
-| [`gdpr/unprotected-export-route`](docs/rules/gdpr/unprotected-export-route.md) | Protect data exports              | Flags export-like methods or route paths without a recognized auth decorator.                                           |
+| [`gdpr/minimal-data-collected`](packages/rules-gdpr/docs/rules/gdpr/minimal-data-collected.md)     | Require structured request bodies | Flags route methods with `@Body()` parameters that have no type or use `any`.                                           |
+| [`gdpr/overly-broad-select`](packages/rules-gdpr/docs/rules/gdpr/overly-broad-select.md)           | Limit query fields                | Flags `find`, `findOne`, `findAndCount`, and `findAll` calls on repository/model/service-like receivers without an options object containing `select`.             |
+| [`gdpr/data-retention-missing`](packages/rules-gdpr/docs/rules/gdpr/data-retention-missing.md)     | Require retention signals         | Checks `@Entity()` classes and classes extending `Model` for recognized retention fields or decorators.                 |
+| [`gdpr/explicit-pii-logging`](packages/rules-gdpr/docs/rules/gdpr/explicit-pii-logging.md)         | Reduce sensitive logging          | Flags known sensitive identifiers and request/user properties passed to recognized logger calls.                        |
+| [`gdpr/missing-consent-flag`](packages/rules-gdpr/docs/rules/gdpr/missing-consent-flag.md)         | Require consent-related DTOs      | Checks registration-like methods for a parameter type that has a consent property (in a class declared in the same file) or a consent keyword in its name.                            |
+| [`gdpr/missing-erasure-cascade`](packages/rules-gdpr/docs/rules/gdpr/missing-erasure-cascade.md)   | Preserve deletion propagation     | Flags `ManyToOne`, `OneToOne`, and `BelongsTo` relations without `onDelete` of `CASCADE` or `SET NULL`.                                 |
+| [`gdpr/pii-unhashed-storage`](packages/rules-gdpr/docs/rules/gdpr/pii-unhashed-storage.md)         | Protect highly sensitive fields   | Flags exact field names such as `password`, `ssn`, `pin`, and `social_security` without an accepted security decorator. |
+| [`gdpr/third-party-pii-leak`](packages/rules-gdpr/docs/rules/gdpr/third-party-pii-leak.md)         | Review outbound PII transfers     | Flags known payload identifiers and request/user properties passed to recognized HTTP clients.                          |
+| [`gdpr/unencrypted-pii-column`](packages/rules-gdpr/docs/rules/gdpr/unencrypted-pii-column.md)     | Encrypt high-risk columns         | Flags exact high-risk field names in TypeORM entities or Sequelize models without encryption or a transformer.          |
+| [`gdpr/unprotected-export-route`](packages/rules-gdpr/docs/rules/gdpr/unprotected-export-route.md) | Protect data exports              | Flags export-like methods or route paths without a recognized auth decorator.                                           |
 
 Each rule page includes accepted examples and known limitations. These rules use names, decorators, and local syntax patterns; they do not perform data-flow analysis or prove that a runtime control is effective.
 
@@ -138,6 +138,8 @@ npm run test:coverage
 npm run lint
 npm run build
 ```
+
+The repository is an npm workspaces monorepo (`packages/core`, `lang-typescript`, `rules-gdpr` and the `complinter` CLI). See [CONTRIBUTING.md](CONTRIBUTING.md) for the layout. `npm test` accepts test file paths to run a subset, for example `npm test -- packages/core/test/runner.test.ts`.
 
 ## Publishing
 

@@ -31,5 +31,11 @@ jobs:
             - name: Test
               run: npm test
 
+            - name: Build
+              run: npm run build
+
+            # The repo is a workspace; only the CLI package is published. It is marked
+            # "private" until its build bundles the internal @complinter/* packages,
+            # so this step intentionally fails until then.
             - name: Publish to npm
-              run: npm publish --provenance --access public
+              run: npm publish --workspace complinter --provenance --access public

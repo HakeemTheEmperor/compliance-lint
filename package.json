@@ -1,36 +1,20 @@
 {
-  "name": "complinter",
-  "version": "1.0.0",
-  "description": "Static analysis CLI that flags GDPR/privacy compliance risks in TypeScript and JavaScript code.",
-  "main": "dist/cli.js",
-  "files": [
-    "dist"
+  "name": "compliance-lint-workspace",
+  "private": true,
+  "description": "Workspace root for complinter and its packages.",
+  "workspaces": [
+    "packages/*"
   ],
-  "bin": {
-    "complint": "./dist/cli.js"
-  },
   "scripts": {
-    "test": "tsx --import tsconfig-paths/register --test \"test/**/*.test.ts\"",
-    "test:coverage": "c8 --reporter=text --reporter=lcov tsx --import tsconfig-paths/register --test \"test/**/*.test.ts\"",
+    "test": "node scripts/run-tests.mjs",
+    "test:coverage": "c8 --reporter=text --reporter=lcov node scripts/run-tests.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
-    "build": "npm run clean && tsc -p tsconfig.build.json",
-    "prepublishOnly": "npm run build"
+    "clean": "tsc -b --clean tsconfig.build.json",
+    "build": "tsc -b tsconfig.build.json"
   },
-  "keywords": [
-    "gdpr",
-    "compliance",
-    "privacy",
-    "linter",
-    "static-analysis",
-    "ast",
-    "typescript",
-    "cli"
-  ],
   "author": "Toluwalase Akinyemi",
   "license": "ISC",
-  "type": "commonjs",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.4.1",
@@ -40,17 +24,6 @@
     "tsx": "^4.23.13",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.69.0"
-  },
-  "dependencies": {
-    "@typescript-eslint/typescript-estree": "^8.69.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/HakeemTheEmperor/compliance-lint.git"
-  },
-  "homepage": "https://github.com/HakeemTheEmperor/compliance-lint#readme",
-  "bugs": {
-    "url": "https://github.com/HakeemTheEmperor/compliance-lint/issues"
   },
   "engines": {
     "node": ">=18.3.0"

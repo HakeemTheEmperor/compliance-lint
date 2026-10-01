@@ -37,32 +37,42 @@ The project is written in TypeScript and uses `@typescript-eslint/typescript-est
 
 ## Project Layout
 
+This is an npm workspaces monorepo. Each package has its own `package.json`,
+`tsconfig.build.json` and tests, so any of them could be moved to its own
+repository later.
+
 ```text
-src/
-  cli.ts                         # Thin bin entry; calls run.ts
-  run.ts                         # Argument parsing, scan orchestration, exit codes
-  config/config-loader.ts        # compliance.json loading, validation, defaults
-  engine/
-    file-discovery.ts            # Recursive source file discovery
-    parse-file.ts                # Source -> AST (+ comments)
-    runner.ts                    # AST traversal and rule execution
-    suppress.ts                  # Inline compliance-ignore comments
-    cache.ts                     # Content-hash result cache
-    types.ts                     # Rule, config, and violation contracts
-  reporters/                     # console, json, sarif
-  rules/
-    utils.ts                     # Helpers shared between rules
-  rules/
-    gdpr/                        # GDPR rule implementations
+packages/
+  core/                          # @complinter/core (private for now)
+    src/index.ts                 # Public entry point; other packages import only from here
+    src/engine/                  # runner, file discovery, cache, suppression, types
+    src/config/config-loader.ts  # compliance.json loading, validation, defaults
+    src/reporters/               # console, json, sarif
+    test/
+  lang-typescript/               # @complinter/lang-typescript
+    src/parse-file.ts            # Source -> AST (+ comments)
+    test/
+  rules-gdpr/                    # @complinter/rules-gdpr
+    src/index.ts                 # Rule registry (allRules)
+    src/utils.ts                 # Helpers shared between rules
+    src/gdpr/                    # GDPR rule implementations
+    test/gdpr/                   # Rule-level tests
+    test/e2e/                    # Cross-rule fixture tests
+    docs/rules/gdpr/             # One guide per rule
+  complinter/                    # The CLI package (bin: complint)
+    src/cli.ts                   # Thin bin entry; calls run.ts
+    src/run.ts                   # Argument parsing, scan orchestration, exit codes
+    test/cli/                    # CLI exit codes and options
+    test/compat/                 # Golden-output compatibility tests
+    test/fixtures/compat/        # Fixture corpus + golden files
 
-test/
-  rules/gdpr/                    # Rule-level tests
-  engine/                        # Runner, discovery, and DX tests
-  cli/                           # CLI exit codes and options
-  e2e/                           # Cross-rule fixture tests
-
-docs/rules/gdpr/                 # One guide per rule
+scripts/run-tests.mjs            # Runs every packages/*/test/**/*.test.ts
+docs/                            # PRD and project-level documentation
 ```
+
+Packages import each other only through the package name (for example
+`import { Rule } from "@complinter/core"`), never through relative paths or
+files inside another package's `src/`.
 
 ## Branches and Changes
 
@@ -84,11 +94,11 @@ docs: document GDPR rule limitations
 
 ## Adding or Changing a Rule
 
-A rule implements the `Rule` interface from `src/engine/types.ts`:
+A rule implements the `Rule` interface exported by `@complinter/core` (defined in `packages/core/src/engine/types.ts`):
 
 ```ts
 import { TSESTree } from "@typescript-eslint/typescript-estree";
-import { Rule } from "@/src/engine/types";
+import { Rule } from "@complinter/core";
 
 export const exampleRule: Rule = {
   id: "gdpr/example-rule",
@@ -114,7 +124,7 @@ export const exampleRule: Rule = {
 ### Rule requirements
 
 1. Use a stable ID in the format `framework/rule-name`.
-2. Add the rule to `src/rules/index.ts` so it is available to the engine.
+2. Add the rule to `packages/rules-gdpr/src/index.ts` so it is available to the engine.
 3. Keep detection deterministic and based on syntax that the parser exposes.
 4. Narrow the visitor before reporting. Check node types explicitly instead of relying on unchecked casts.
 5. Report the most useful source location available.
@@ -126,18 +136,18 @@ export const exampleRule: Rule = {
 
 ### Rule registry
 
-The rule registry is the source of truth for shipped rules. After adding a rule, update `src/rules/index.ts` and the default configuration in `src/config/config-loader.ts` when the rule should be enabled by default.
+The rule registry is the source of truth for shipped rules. After adding a rule, update `packages/rules-gdpr/src/index.ts` and the default configuration in `packages/core/src/config/config-loader.ts` when the rule should be enabled by default.
 
 If a rule is intentionally opt-in, document that clearly in the README and its rule page.
 
 ## Writing Tests
 
-Every rule should have a test file under `test/rules/gdpr/` that follows the implementation filename. For example:
+Every rule should have a test file under `packages/rules-gdpr/test/gdpr/` that follows the implementation filename. For example:
 
 ```text
-src/rules/gdpr/example-rule.ts
-test/rules/gdpr/example-rule.test.ts
-docs/rules/gdpr/example-rule.md
+packages/rules-gdpr/src/gdpr/example-rule.ts
+packages/rules-gdpr/test/gdpr/example-rule.test.ts
+packages/rules-gdpr/docs/rules/gdpr/example-rule.md
 ```
 
 At minimum, tests should cover:
@@ -153,8 +163,8 @@ Use the existing `node:test`, `node:assert`, parser, and `EngineRunner` pattern:
 import { test } from "node:test";
 import * as assert from "node:assert";
 import { parse } from "@typescript-eslint/typescript-estree";
-import { EngineRunner } from "@/src/engine/runner";
-import { exampleRule } from "@/src/rules/gdpr/example-rule";
+import { EngineRunner } from "@complinter/core";
+import { exampleRule } from "../../src/gdpr/example-rule";
 
 void test("Rule: gdpr/example-rule", () => {
   const runner = new EngineRunner([exampleRule]);
@@ -167,11 +177,11 @@ void test("Rule: gdpr/example-rule", () => {
 });
 ```
 
-Keep fixtures small. A test should make it obvious which syntax caused the report. Add an end-to-end fixture under `test/e2e/` only when the behavior depends on multiple rules or the complete scan pipeline.
+Keep fixtures small. A test should make it obvious which syntax caused the report. Add an end-to-end fixture under `packages/rules-gdpr/test/e2e/` only when the behavior depends on multiple rules or the complete scan pipeline.
 
 ## Documentation Requirements
 
-Each rule must have a matching page at `docs/rules/gdpr/<rule-file-name>.md`. The page should include:
+Each rule must have a matching page at `packages/rules-gdpr/docs/rules/gdpr/<rule-file-name>.md`. The page should include:
 
 - The exact rule ID.
 - What the rule detects.
@@ -206,7 +216,7 @@ npm run build
 For a rule-only change, run its focused test first:
 
 ```bash
-npx tsx --import tsconfig-paths/register --test test/rules/gdpr/example-rule.test.ts
+npm test -- packages/rules-gdpr/test/gdpr/example-rule.test.ts
 ```
 
 For a CLI or configuration change, include the relevant engine, config, reporter, file-discovery, or end-to-end tests as well.
