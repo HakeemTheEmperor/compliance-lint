@@ -127,6 +127,12 @@ Plugins add rules (and, later, support for other languages) to complinter. List 
 - Plugin rules use their plugin's namespace (`acme/some-rule`) and are configured like built-in rules under `rules`. A plugin may declare default severities; rules without one are errors.
 - Plugins run with the same permissions as your project. Only list code you trust.
 
+### Official plugins
+
+| Plugin                                                  | Rules                                                                          | Status                              |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------- |
+| [`@complinter/plugin-nestjs`](packages/plugin-nestjs/) | `nestjs/pii-in-url`, `nestjs/unserialized-sensitive-response` (NestJS projects) | Experimental, not yet on npm (see its README) |
+
 The plugin API is **experimental** and may change in minor releases until it is frozen. An authoring guide will follow.
 
 ## Included Rules (MVP)

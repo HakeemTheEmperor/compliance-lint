@@ -57,6 +57,7 @@
   "devDependencies": {
     "@complinter/core": "*",
     "@complinter/lang-typescript": "*",
-    "@complinter/rules-gdpr": "*"
+    "@complinter/rules-gdpr": "*",
+    "@complinter/plugin-nestjs": "*"
   }
 }

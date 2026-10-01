@@ -11,8 +11,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p tsconfig.json",
-    "clean": "tsc -b --clean tsconfig.build.json && node -e \"require('fs').rmSync('packages/complinter/dist',{recursive:true,force:true})\"",
-    "build": "tsc -b tsconfig.build.json && npm run build --workspace complinter"
+    "clean": "tsc -b --clean tsconfig.build.json && node -e \"const {rmSync}=require('fs');for (const d of ['complinter','plugin-nestjs']) rmSync('packages/'+d+'/dist',{recursive:true,force:true})\"",
+    "build": "tsc -b tsconfig.build.json && npm run build --workspace complinter && npm run build --workspace @complinter/plugin-nestjs"
   },
   "author": "Toluwalase Akinyemi",
   "license": "ISC",

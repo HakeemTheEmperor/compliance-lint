@@ -12,6 +12,12 @@
       ],
       "@complinter/rules-gdpr": [
         "packages/rules-gdpr/src/index.ts"
+      ],
+      "complinter/plugin-api": [
+        "packages/complinter/src/plugin-api.ts"
+      ],
+      "@complinter/plugin-nestjs": [
+        "packages/plugin-nestjs/src/index.ts"
       ]
     }
   },

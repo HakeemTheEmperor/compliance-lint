@@ -63,6 +63,10 @@ packages/
     test/gdpr/                   # Rule-level tests
     test/e2e/                    # Cross-rule fixture tests
     docs/rules/gdpr/             # One guide per rule
+  plugin-nestjs/                 # @complinter/plugin-nestjs (private for now)
+    src/                         # Rules; imports only "complinter/plugin-api"
+    test/                        # Rule tests, written with lintText from the plugin API
+    docs/rules/                  # One guide per rule
   complinter/                    # The CLI package (bin: complint)
     src/cli.ts                   # Thin bin entry; calls run.ts
     src/run.ts                   # Argument parsing, scan orchestration, exit codes

@@ -1,0 +1,45 @@
+{
+  "name": "@complinter/plugin-nestjs",
+  "version": "0.1.0",
+  "private": true,
+  "description": "NestJS rules for complinter: personal data in URLs and in serialized responses.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "docs"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "keywords": [
+    "complinter",
+    "complinter-plugin",
+    "nestjs",
+    "gdpr",
+    "privacy"
+  ],
+  "license": "ISC",
+  "type": "commonjs",
+  "peerDependencies": {
+    "complinter": "*"
+  },
+  "devDependencies": {
+    "complinter": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HakeemTheEmperor/compliance-lint.git",
+    "directory": "packages/plugin-nestjs"
+  },
+  "engines": {
+    "node": ">=18.3.0"
+  }
+}
