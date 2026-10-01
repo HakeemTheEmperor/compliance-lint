@@ -1,20 +1,11 @@
 import { test } from "node:test";
 import * as assert from "node:assert";
-import * as fs from "node:fs";
 import { parse } from "@typescript-eslint/typescript-estree";
 import { EngineRunner } from "@/src/engine/runner";
 import { allRules } from "@/src/rules";
-// import { LinterCache } from "@/src/engine/cache";
 
 void test("Phase 5 E2E: Compliance Fixtures Verification", async (t) => {
   const runner = new EngineRunner(allRules);
-  // const cache = new LinterCache(".test-e2e-cache.json");
-
-  // Cleanup cache helper
-  t.after(() => {
-    if (fs.existsSync(".test-e2e-cache.json"))
-      fs.unlinkSync(".test-e2e-cache.json");
-  });
 
   await t.test("Compliant fixture passes with 0 violations", () => {
     const code = `
