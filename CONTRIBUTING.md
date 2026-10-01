@@ -66,17 +66,23 @@ packages/
   complinter/                    # The CLI package (bin: complint)
     src/cli.ts                   # Thin bin entry; calls run.ts
     src/run.ts                   # Argument parsing, scan orchestration, exit codes
+    src/plugin-api.ts            # Public API for plugin authors ("complinter/plugin-api")
+    tsup.config.ts               # Bundles the CLI and inlines the internal packages
     test/cli/                    # CLI exit codes and options
     test/compat/                 # Golden-output compatibility tests
+    test/pack/                   # Packs the tarball, installs it cleanly and runs it
     test/fixtures/compat/        # Fixture corpus + golden files
 
-scripts/run-tests.mjs            # Runs every packages/*/test/**/*.test.ts
+scripts/run-tests.mjs            # Runs every packages/*/test and tools test
+tools/eslint-plugin-boundaries/  # Lint rule that enforces the package boundaries
 docs/                            # PRD and project-level documentation
 ```
 
 Packages import each other only through the package name (for example
 `import { Rule } from "@complinter/core"`), never through relative paths or
-files inside another package's `src/`.
+files inside another package's `src/` or `dist/`. Each package's `exports` field exposes only its entry point, and the `boundaries/package-boundaries` lint rule fails `npm run lint` on deep imports (`@complinter/core/dist/...`) and on relative imports that cross a package boundary.
+
+Only `complinter` is published. Its build (`tsup`) inlines `@complinter/core`, `@complinter/lang-typescript` and `@complinter/rules-gdpr` into `dist/cli.js` and `dist/plugin-api.js`, so they are build-time `devDependencies` of the CLI package. Plugin authors import `complinter/plugin-api` and list `complinter` as a peer dependency.
 
 ## Branches and Changes
 

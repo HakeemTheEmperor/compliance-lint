@@ -29,6 +29,7 @@ if (files.length === 0) {
   for (const pkg of fs.readdirSync(packagesDir)) {
     collect(path.join(packagesDir, pkg, "test"), files);
   }
+  collect(path.join(root, "tools"), files);
   files.sort();
 }
 

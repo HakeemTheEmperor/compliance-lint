@@ -1,6 +1,7 @@
 import eslint from "@eslint/js";
 import { defineConfig } from "eslint/config";
 import tseslint from "typescript-eslint";
+import boundaries from "./tools/eslint-plugin-boundaries/index.mjs";
 
 export default defineConfig([
   eslint.configs.recommended,
@@ -20,6 +21,12 @@ export default defineConfig([
         { argsIgnorePattern: "^_" },
       ],
     },
+  },
+  {
+    // Keep workspace packages independent: no deep or cross-package relative imports.
+    files: ["packages/**/*.ts"],
+    plugins: { boundaries },
+    rules: { "boundaries/package-boundaries": "error" },
   },
   {
     ignores: [

@@ -3,12 +3,28 @@
   "version": "1.0.0",
   "private": true,
   "description": "Static analysis CLI that flags GDPR/privacy compliance risks in TypeScript and JavaScript code.",
-  "main": "dist/cli.js",
   "files": [
     "dist"
   ],
   "bin": {
     "complint": "./dist/cli.js"
+  },
+  "exports": {
+    "./plugin-api": {
+      "types": "./dist/plugin-api.d.ts",
+      "default": "./dist/plugin-api.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "plugin-api": [
+        "dist/plugin-api.d.ts"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsup"
   },
   "keywords": [
     "gdpr",
@@ -24,9 +40,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@complinter/core": "*",
-    "@complinter/lang-typescript": "*",
-    "@complinter/rules-gdpr": "*"
+    "@typescript-eslint/typescript-estree": "^8.69.0"
   },
   "repository": {
     "type": "git",
@@ -39,5 +53,10 @@
   },
   "engines": {
     "node": ">=18.3.0"
+  },
+  "devDependencies": {
+    "@complinter/core": "*",
+    "@complinter/lang-typescript": "*",
+    "@complinter/rules-gdpr": "*"
   }
 }

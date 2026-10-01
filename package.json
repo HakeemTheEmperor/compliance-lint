@@ -11,8 +11,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p tsconfig.json",
-    "clean": "tsc -b --clean tsconfig.build.json",
-    "build": "tsc -b tsconfig.build.json"
+    "clean": "tsc -b --clean tsconfig.build.json && node -e \"require('fs').rmSync('packages/complinter/dist',{recursive:true,force:true})\"",
+    "build": "tsc -b tsconfig.build.json && npm run build --workspace complinter"
   },
   "author": "Toluwalase Akinyemi",
   "license": "ISC",
@@ -22,6 +22,7 @@
     "c8": "^12.0.0",
     "eslint": "^10.9.1",
     "tsconfig-paths": "^4.2.0",
+    "tsup": "^8.5.1",
     "tsx": "^4.23.13",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.69.0"

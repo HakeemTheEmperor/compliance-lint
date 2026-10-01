@@ -156,6 +156,8 @@ npm run lint
 npm run build
 ```
 
+`npm test` includes a packaging test (`packages/complinter/test/pack`) that packs the CLI, installs the tarball into a clean temporary project and runs it with CJS, ESM and package plugins. It needs the npm registry (or a warm npm cache) and about ten seconds; run `npm run build` first.
+
 The repository is an npm workspaces monorepo (`packages/core`, `lang-typescript`, `rules-gdpr` and the `complinter` CLI). See [CONTRIBUTING.md](CONTRIBUTING.md) for the layout. `npm test` accepts test file paths to run a subset, for example `npm test -- packages/core/test/runner.test.ts`.
 
 ## Publishing
