@@ -19,5 +19,5 @@ user!: User;
 ## Known limitations
 
 - It recognizes only `ManyToOne`, `OneToOne`, and `BelongsTo` decorators.
-- The cascade value must be a literal string equal to `CASCADE`, ignoring case.
+- `onDelete` must be `CASCADE` or `SET NULL` as a string literal, a plain template literal, or an enum-style member such as `OnDeleteType.CASCADE`. Values held in variables are not resolved.
 - It does not inspect database migrations, application-level deletion services, or inverse relationships.

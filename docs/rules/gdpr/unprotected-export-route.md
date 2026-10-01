@@ -23,6 +23,7 @@ downloadBackup() {
 
 ## Known limitations
 
-- Export-like keywords are matched in method names and string arguments of decorators.
+- Export-like words (`export`, `exports`, `download`, `dump`, `backup`) are matched as whole words in method names (split on camelCase, `_` and `-`) and in string arguments of decorators, so `exportUserData` and `/export-data` match but `extractToken` does not.
+- A guard on the enclosing controller class (for example `@UseGuards(...)` on the class) protects all of its methods.
 - Accepted security decorators include `UseGuards`, `Auth`, `JwtAuthGuard`, `Roles`, `ApiKeyGuard`, and `Authenticated`.
 - It does not evaluate guard configuration, route-level middleware, policy checks, or whether an endpoint actually returns personal data.

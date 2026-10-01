@@ -2,13 +2,13 @@
 
 **Product Name:** ComplianceLint  
 **Phase:** 1.0 (MVP)  
-**Document Status:** Approved
+**Document Status:** Living document. Sections marked _(planned)_ are not implemented yet; see the README for what ships today.
 
 ## 1. Product Vision & Strategy
 
 Bridging the gap between statutory legal requirements and daily software engineering operations is a massive challenge. Developers rarely read regulatory frameworks, and compliance officers do not review pull requests.
 
-ComplianceLint translates data privacy laws (like GDPR and NDPR) into technical heuristics. By parsing backend structures (Node.js, NestJS, Express, TypeORM, PostgreSQL) into Abstract Syntax Trees (AST), the tool identifies regulatory violations at the code level before they reach production.
+ComplianceLint translates data privacy laws (GDPR today; NDPR _(planned)_) into technical heuristics. By parsing backend structures (Node.js, NestJS, Express, TypeORM, PostgreSQL) into Abstract Syntax Trees (AST), the tool identifies regulatory violations at the code level before they reach production.
 
 ## 2. Target Audience
 
@@ -18,7 +18,7 @@ ComplianceLint translates data privacy laws (like GDPR and NDPR) into technical 
 
 ## 3. Core Features & Scope (MVP)
 
-1. **CLI Execution Engine:** A Node.js CLI executable (`compliance-lint`) built with `commander`.
+1. **CLI Execution Engine:** A Node.js CLI executable (`complint`, published as `complinter`) using Node's built-in `util.parseArgs`.
 2. **AST Parser:** Leverages `@typescript-eslint/typescript-estree` to analyze TypeScript/JavaScript code.
 3. **Configuration Loader:** Reads `compliance.json` for custom rule severity (`error`, `warn`, `off`) and directory exclusions.
 4. **Rule Engine:** Executes 10 hardcoded GDPR rules evaluating data-at-rest (models) and data-in-motion (controllers/DTOs).
@@ -27,14 +27,14 @@ ComplianceLint translates data privacy laws (like GDPR and NDPR) into technical 
 ## 4. Technical Architecture
 
 **Language:** TypeScript (Node.js)  
-**Core Dependencies:** `commander` (CLI), `@typescript-eslint/typescript-estree` (Parsing), `chalk` (Console styling).
+**Core Dependencies:** `@typescript-eslint/typescript-estree` (Parsing); ANSI escape codes for console styling (no runtime dependency).
 
 ### 4.1 Folder Structure
 
 ```text
 compliance-lint/
 ├── bin/
-│   └── cli.js                  # Entry executable (#!/usr/bin/env node)
+│   └── cli.js                  # Entry executable (#!/usr/bin/env node); built to dist/cli.js, thin wrapper over src/run.ts
 ├── src/
 │   ├── config/
 │   │   └── config-loader.ts    # Reads compliance.json or applies defaults
@@ -48,7 +48,7 @@ compliance-lint/
 │   │   │   └── ... (remaining MVP rules)
 │   │   └── index.ts            # Rule registry map
 │   └── reporters/
-│       └── console-reporter.ts # Terminal output formatting
+│       └── console.ts (+ json.ts, sarif.ts)   # Terminal output formatting
 ├── package.json
 ├── tsconfig.json
 └── README.md
@@ -65,7 +65,7 @@ compliance-lint/
 
 ### Phase 2: Data-at-Rest Rules (Database)
 
-- Build AST visitors targeting TypeORM/Sequelize/Prisma patterns.
+- Build AST visitors targeting TypeORM/Sequelize patterns (Prisma _(planned)_).
 - Implement rules: `gdpr/pii-unhashed-storage`, `gdpr/unencrypted-pii-column`, `gdpr/data-retention-missing`, `gdpr/missing-erasure-cascade`.
 
 ### Phase 3: Data-in-Motion Rules (API Layer)
@@ -92,7 +92,7 @@ compliance-lint/
 
 ### Phase 7: The SaaS Transition (Cloud Dashboard MVP)
 
-- Introduce `--token` flag for telemetry payload beaming.
+- _(planned)_ Introduce `--token` flag for telemetry payload beaming.
 - Develop a fast API (FastAPI or NestJS) and a PostgreSQL database.
 - Build a web dashboard (Next.js) for visualization and organizational compliance scoring.
 

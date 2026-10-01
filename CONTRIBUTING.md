@@ -39,20 +39,26 @@ The project is written in TypeScript and uses `@typescript-eslint/typescript-est
 
 ```text
 src/
-  cli.ts                         # CLI entry point and scan orchestration
-  config/config-loader.ts        # compliance.json loading and defaults
+  cli.ts                         # Thin bin entry; calls run.ts
+  run.ts                         # Argument parsing, scan orchestration, exit codes
+  config/config-loader.ts        # compliance.json loading, validation, defaults
   engine/
-    file-discovery.ts            # Recursive TypeScript file discovery
-    parser.ts                    # Parser helpers
+    file-discovery.ts            # Recursive source file discovery
+    parse-file.ts                # Source -> AST (+ comments)
     runner.ts                    # AST traversal and rule execution
+    suppress.ts                  # Inline compliance-ignore comments
+    cache.ts                     # Content-hash result cache
     types.ts                     # Rule, config, and violation contracts
-  reporters/console.ts           # Terminal output and exit status
+  reporters/                     # console, json, sarif
+  rules/
+    utils.ts                     # Helpers shared between rules
   rules/
     gdpr/                        # GDPR rule implementations
 
 test/
   rules/gdpr/                    # Rule-level tests
   engine/                        # Runner, discovery, and DX tests
+  cli/                           # CLI exit codes and options
   e2e/                           # Cross-rule fixture tests
 
 docs/rules/gdpr/                 # One guide per rule
@@ -103,6 +109,8 @@ export const exampleRule: Rule = {
 };
 ```
 
+`create(context)` is called **once per file**, not once per node, so state kept in the closure (for example a registry collected in a `Program` visitor) is shared by every visitor for that file.
+
 ### Rule requirements
 
 1. Use a stable ID in the format `framework/rule-name`.
@@ -113,7 +121,8 @@ export const exampleRule: Rule = {
 6. Use a specific message that describes the observed pattern and risk.
 7. Avoid claiming that a rule proves legal compliance, encryption, authorization, consent, or deletion unless the implementation actually verifies it.
 8. Consider both decorator forms where relevant, such as `@Auth` and `@Auth()`.
-9. Do not silently change another rule's behavior. Add or update tests for any intentional behavior change.
+9. Users can suppress a finding with `// compliance-ignore-next-line <rule-id>`; keep the reported `line` on the code a user would put that comment above.
+10. Do not silently change another rule's behavior. Add or update tests for any intentional behavior change.
 
 ### Rule registry
 
