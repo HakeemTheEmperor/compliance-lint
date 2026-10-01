@@ -32,3 +32,5 @@ import { definePlugin, defineRule } from "complinter/plugin-api";
 ```
 
 Its tests use `lintText` from the same entry point.
+
+To write a plugin of your own, see the [plugin authoring guide](../../docs/plugins.md); this one is the reference example.

@@ -1,7 +1,6 @@
 {
   "name": "complinter",
   "version": "1.0.0",
-  "private": true,
   "description": "Static analysis CLI that flags GDPR/privacy compliance risks in TypeScript and JavaScript code.",
   "files": [
     "dist"
@@ -59,5 +58,9 @@
     "@complinter/lang-typescript": "*",
     "@complinter/rules-gdpr": "*",
     "@complinter/plugin-nestjs": "*"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

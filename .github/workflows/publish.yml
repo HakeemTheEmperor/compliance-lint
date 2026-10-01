@@ -34,8 +34,14 @@ jobs:
             - name: Build
               run: npm run build
 
-            # The repo is a workspace; only the CLI package is published. It is marked
-            # "private" until its build bundles the internal @complinter/* packages,
-            # so this step intentionally fails until then.
+            # Fails if the tag does not match the version, a package other than
+            # complinter is publishable, or the build output is missing.
+            - name: Check the release
+              run: npm run release:check
+              env:
+                  RELEASE_TAG: ${{ github.event.release.tag_name }}
+
+            # The repo is a workspace; only the CLI package is published. It bundles
+            # the internal @complinter/* packages, so they are never published.
             - name: Publish to npm
               run: npm publish --workspace complinter --provenance --access public

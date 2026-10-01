@@ -78,8 +78,10 @@ packages/
     test/fixtures/compat/        # Fixture corpus + golden files
 
 scripts/run-tests.mjs            # Runs every packages/*/test and tools test
+scripts/check-release.mjs        # Release guard used by the publish workflow
+.changeset/                      # Pending changesets (release notes) and config
 tools/eslint-plugin-boundaries/  # Lint rule that enforces the package boundaries
-docs/                            # PRD and project-level documentation
+docs/                            # PRD, plugin authoring guide (plugins.md)
 ```
 
 Packages import each other only through the package name (for example
@@ -87,6 +89,10 @@ Packages import each other only through the package name (for example
 files inside another package's `src/` or `dist/`. Each package's `exports` field exposes only its entry point, and the `boundaries/package-boundaries` lint rule fails `npm run lint` on deep imports (`@complinter/core/dist/...`) and on relative imports that cross a package boundary.
 
 Only `complinter` is published. Its build (`tsup`) inlines `@complinter/core`, `@complinter/lang-typescript` and `@complinter/rules-gdpr` into `dist/cli.js` and `dist/plugin-api.js`, so they are build-time `devDependencies` of the CLI package. Plugin authors import `complinter/plugin-api` and list `complinter` as a peer dependency.
+
+## Writing a plugin
+
+Rules for a framework or library belong in a plugin, not in `rules-gdpr`. The [plugin authoring guide](docs/plugins.md) covers the API, testing with `lintText`, and packaging. `packages/plugin-nestjs` is the reference example; plugin packages may import only `complinter/plugin-api`, which lint enforces.
 
 ## Branches and Changes
 
@@ -239,6 +245,14 @@ For a CLI or configuration change, include the relevant engine, config, reporter
 
 If a command cannot be run locally, state that in the pull request and include the reason. Do not hide failing tests or weaken assertions just to make a check pass.
 
+## Releases
+
+Versions and changelogs are managed with [changesets](https://github.com/changesets/changesets).
+
+- **Contributors:** a change that users of `complinter` can notice (a rule's behavior, CLI or config behavior, the plugin API, shipped docs) needs a changeset. Run `npm run changeset`, choose `complinter` and the bump, and write the entry for users. Commit the generated file in `.changeset/` with your change. Because the internal packages are bundled into `complinter`, a change to `core`, `lang-typescript` or `rules-gdpr` is a change to `complinter`. Pick `patch` for fixes, `minor` for new rules, options or plugin API additions, and `major` for anything that changes existing rule ids, default severities, `compliance.json` or CLI behavior. Tests, refactors and internal docs need none.
+- **Maintainers:** run `npm run version-packages` to apply the pending changesets (it updates versions, `packages/complinter/CHANGELOG.md` and the lockfile), review and merge that change, then publish a GitHub release tagged with the new version. `.github/workflows/publish.yml` does the rest. Only `complinter` publishes; `npm run release:check` fails the workflow if any other package becomes publishable.
+- While the plugin API is experimental, say so in the changeset when it changes, and bump `apiVersion` only for breaking changes.
+
 ## Pull Requests
 
 A useful pull request description includes:
@@ -248,6 +262,7 @@ A useful pull request description includes:
 - How the behavior was tested.
 - Any compatibility considerations.
 - Known limitations or follow-up work.
+- The changeset, when the change is user-facing.
 
 Keep the review surface easy to inspect. Include before-and-after examples for changes to rule detection or console output. Reviewers should be able to reproduce the reported behavior from the tests and documentation.
 
