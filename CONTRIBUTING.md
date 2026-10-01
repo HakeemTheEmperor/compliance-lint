@@ -47,7 +47,8 @@ packages/
     src/index.ts                 # Public entry point; other packages import only from here
     src/engine/                  # runner, language adapters, file discovery, cache,
                                  # suppression, tree walking, types
-    src/config/config-loader.ts  # compliance.json loading, validation, defaults
+    src/config/config-loader.ts  # compliance.json reading, validation, merging with defaults
+    src/plugin/                  # plugin types, validation, loader, cache fingerprint
     src/reporters/               # console, json, sarif
     test/
   lang-typescript/               # @complinter/lang-typescript
@@ -57,6 +58,7 @@ packages/
   rules-gdpr/                    # @complinter/rules-gdpr
     src/index.ts                 # Rule registry (allRules)
     src/utils.ts                 # Helpers shared between rules
+    src/index.ts                 # also exports defaultSeverities and gdprPlugin
     src/gdpr/                    # GDPR rule implementations
     test/gdpr/                   # Rule-level tests
     test/e2e/                    # Cross-rule fixture tests
@@ -140,7 +142,7 @@ Rules are written for one language. A rule's optional `language` field names the
 
 ### Rule registry
 
-The rule registry is the source of truth for shipped rules. After adding a rule, update `packages/rules-gdpr/src/index.ts` and the default configuration in `packages/core/src/config/config-loader.ts` when the rule should be enabled by default.
+The rule registry is the source of truth for shipped rules. After adding a rule, add it to `allRules` in `packages/rules-gdpr/src/index.ts` and give it an entry in `defaultSeverities` there (core itself knows no rule ids). A rule with no default severity is an error. The built-in rules are exposed as `gdprPlugin`, which the CLI always loads.
 
 If a rule is intentionally opt-in, document that clearly in the README and its rule page.
 

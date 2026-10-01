@@ -2,14 +2,34 @@ import { test } from "node:test";
 import * as assert from "node:assert";
 import * as fs from "fs";
 import * as path from "path";
-import { loadConfig, ConfigError } from "../src/config/config-loader";
+import {
+  loadConfig,
+  readConfig,
+  resolveConfig,
+  findUnknownRules,
+  ConfigError,
+  DEFAULT_IGNORE,
+} from "../src/config/config-loader";
+import { RuleSeverity } from "../src/engine/types";
+
+// Defaults come from the loaded rule sets (core itself knows no rule ids).
+const DEFAULTS: Record<string, RuleSeverity> = {
+  "gdpr/pii-unhashed-storage": "error",
+  "gdpr/minimal-data-collected": "error",
+};
 
 void test("Config Loader", async (t) => {
   const testDir = path.join(__dirname, "mock-env");
 
-  await t.test("returns default config when no file exists", () => {
-    const config = loadConfig("/fake/path/that/does/not/exist");
+  await t.test("returns the supplied defaults when no file exists", () => {
+    const config = loadConfig(
+      "/fake/path/that/does/not/exist",
+      undefined,
+      DEFAULTS,
+    );
     assert.strictEqual(config.rules["gdpr/pii-unhashed-storage"], "error");
+    assert.deepStrictEqual(config.ignore, [...DEFAULT_IGNORE]);
+    assert.deepStrictEqual(config.plugins, []);
   });
 
   await t.test("merges user config with defaults", () => {
@@ -21,7 +41,7 @@ void test("Config Loader", async (t) => {
       JSON.stringify(mockConfig),
     );
 
-    const config = loadConfig(testDir);
+    const config = loadConfig(testDir, undefined, DEFAULTS);
 
     // Should override this specific rule to 'warn'
     assert.strictEqual(config.rules["gdpr/pii-unhashed-storage"], "warn");
@@ -55,15 +75,56 @@ void test("Config Loader validation", async (t) => {
     assert.throws(() => loadConfig(dir), ConfigError);
   });
 
-  await t.test("warns about unknown rule ids but still loads", () => {
+  await t.test("accepts rule ids it has never heard of", () => {
     write({ rules: { "other/thing": "warn" } });
-    const warnings: string[] = [];
-    const config = loadConfig(dir, undefined, (m) => warnings.push(m));
+    const config = loadConfig(dir);
     assert.strictEqual(config.rules["other/thing"], "warn");
-    assert.strictEqual(warnings.length, 1);
   });
 
   await t.test("--config path must exist", () => {
     assert.throws(() => loadConfig(dir, "missing.json"), ConfigError);
   });
+
+  await t.test("a custom ignore list replaces the default one", () => {
+    write({ ignore: ["only-this"] });
+    assert.deepStrictEqual(loadConfig(dir).ignore, ["only-this"]);
+  });
+});
+
+void test("Config Loader: plugins key", async (t) => {
+  const dir = path.join(__dirname, "mock-env-plugins");
+  fs.mkdirSync(dir, { recursive: true });
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const write = (c: unknown) =>
+    fs.writeFileSync(path.join(dir, "compliance.json"), JSON.stringify(c));
+
+  await t.test("reads a list of plugin specifiers", () => {
+    write({ plugins: ["@scope/plugin", "./local.js"] });
+    assert.deepStrictEqual(readConfig(dir).plugins, [
+      "@scope/plugin",
+      "./local.js",
+    ]);
+  });
+
+  await t.test("defaults to no plugins", () => {
+    write({});
+    assert.deepStrictEqual(readConfig(dir).plugins, []);
+  });
+
+  await t.test("rejects non-arrays, non-strings, blanks and duplicates", () => {
+    for (const bad of ["plugin", [1], [""], ["a", "a"]]) {
+      write({ plugins: bad });
+      assert.throws(() => readConfig(dir), ConfigError, JSON.stringify(bad));
+    }
+  });
+});
+
+void test("resolveConfig and findUnknownRules", () => {
+  const config = resolveConfig(
+    { rules: { "x/y": "warn" }, plugins: [] },
+    { "gdpr/a": "error" },
+  );
+  assert.deepStrictEqual(config.rules, { "gdpr/a": "error", "x/y": "warn" });
+  assert.deepStrictEqual(findUnknownRules(config, ["gdpr/a"]), ["x/y"]);
+  assert.deepStrictEqual(findUnknownRules(config, ["gdpr/a", "x/y"]), []);
 });

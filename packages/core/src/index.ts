@@ -14,9 +14,13 @@ export { getFiles, SOURCE_EXTENSIONS } from "./engine/file-discovery";
 export { applySuppressions } from "./engine/suppress";
 export {
   loadConfig,
+  readConfig,
+  resolveConfig,
+  findUnknownRules,
   ConfigError,
-  DEFAULT_CONFIG,
+  DEFAULT_IGNORE,
 } from "./config/config-loader";
+export type { UserConfig } from "./config/config-loader";
 export { reportToConsole } from "./reporters/console";
 export type { FileReport } from "./reporters/console";
 export { formatJson } from "./reporters/json";
@@ -40,3 +44,14 @@ export {
   eraseAdapter,
 } from "./engine/language";
 export { walkTypedTree } from "./engine/walk";
+export { PLUGIN_API_VERSION, definePlugin, PluginError } from "./plugin/types";
+export type { Plugin, LoadedPlugin } from "./plugin/types";
+export { validatePlugin } from "./plugin/validate";
+export {
+  loadPlugins,
+  assemblePlugins,
+  classifyPluginSpec,
+} from "./plugin/loader";
+export type { AssembledPlugins, PluginSpec } from "./plugin/loader";
+export { createCacheFingerprint } from "./plugin/fingerprint";
+export type { FingerprintInput } from "./plugin/fingerprint";

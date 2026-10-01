@@ -1,3 +1,4 @@
+import { PluginError } from "../plugin/types";
 import {
   DEFAULT_LANGUAGE,
   NodeMap,
@@ -72,7 +73,7 @@ export function assertLanguagesRegistered(
   for (const rule of rules) {
     const language = rule.language ?? DEFAULT_LANGUAGE;
     if (!ids.has(language)) {
-      throw new Error(
+      throw new PluginError(
         `Rule "${rule.id}" targets language "${language}" but no adapter for it is registered.`,
       );
     }

@@ -46,7 +46,7 @@ npx complint [options] [directory]
 | ---- | ------------------------------------------------------------------------------------------- |
 | `0`  | No error-level violations (warnings do not fail the run)                                    |
 | `1`  | One or more error-level violations                                                          |
-| `2`  | Usage, config or file problems, e.g. a bad flag, malformed `compliance.json`, or a file that cannot be parsed |
+| `2`  | Usage, config, plugin or file problems, e.g. a bad flag, malformed `compliance.json`, a plugin that cannot be loaded, or a file that cannot be parsed |
 
 ### CI example (GitHub code scanning)
 
@@ -111,6 +111,23 @@ console.log(user); // compliance-ignore gdpr/explicit-pii-logging
 ```
 
 Omit the rule id to suppress every rule on that line. Use suppressions sparingly and explain why in a nearby comment.
+
+## Plugins (experimental)
+
+Plugins add rules (and, later, support for other languages) to complinter. List them in `compliance.json`:
+
+```json
+{
+  "plugins": ["complinter-plugin-acme", "./tools/our-rules.js"]
+}
+```
+
+- An entry is either the name of a package installed in your project, or a path that starts with `./` and stays inside the project (for private rules; the file must be plain JavaScript, CommonJS or ESM). Absolute paths, `..` and URLs are rejected.
+- Only plugins you list are loaded. A plugin that cannot be found, fails to load, targets another plugin API version, claims an existing namespace, or reuses a rule id stops the run with exit code 2.
+- Plugin rules use their plugin's namespace (`acme/some-rule`) and are configured like built-in rules under `rules`. A plugin may declare default severities; rules without one are errors.
+- Plugins run with the same permissions as your project. Only list code you trust.
+
+The plugin API is **experimental** and may change in minor releases until it is frozen. An authoring guide will follow.
 
 ## Included Rules (MVP)
 

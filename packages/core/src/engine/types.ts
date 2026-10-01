@@ -45,4 +45,6 @@ export type RuleSeverity = "error" | "warn" | "off";
 export interface ComplianceConfig {
   ignore: string[];
   rules: Record<string, RuleSeverity>;
+  /** Plugins to load, as written in compliance.json. */
+  plugins?: string[];
 }
