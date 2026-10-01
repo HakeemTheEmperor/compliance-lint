@@ -1,5 +1,6 @@
 import { TSESTree } from "@typescript-eslint/typescript-estree";
 import { Rule } from "@/src/engine/types";
+import { findRiskyReferences } from "../utils";
 
 const LOGGER_OBJECTS = ["console", "logger", "winston", "pino"];
 const RISK_IDENTIFIERS = [
@@ -11,6 +12,8 @@ const RISK_IDENTIFIERS = [
   "req",
   "request",
 ];
+
+const RISK_PROPERTIES = ["body", "payload", "user"];
 
 export const explicitPiiLoggingRule: Rule = {
   id: "gdpr/explicit-pii-logging",
@@ -45,28 +48,13 @@ export const explicitPiiLoggingRule: Rule = {
         if (!isLoggingCall) return;
 
         node.arguments.forEach((arg) => {
-          if (arg.type === TSESTree.AST_NODE_TYPES.Identifier) {
-            if (RISK_IDENTIFIERS.includes(arg.name.toLowerCase())) {
-              context.report({
-                message: `Logging raw variable '${arg.name}' risks exposing sensitive personal data (PII). Violates GDPR Article 32 (Security of Processing).`,
-                line: arg.loc?.start.line ?? 0,
-                column: arg.loc?.start.column ?? 0,
-              });
-            }
-          } else if (arg.type === TSESTree.AST_NODE_TYPES.MemberExpression) {
-            if (
-              arg.property.type === TSESTree.AST_NODE_TYPES.Identifier &&
-              ["body", "payload", "user"].includes(
-                arg.property.name.toLowerCase(),
-              )
-            ) {
-              context.report({
-                message: `Logging raw property '${arg.property.name}' risks exposing sensitive personal data (PII). Violates GDPR Article 32 (Security of Processing).`,
-                line: arg.loc?.start.line ?? 0,
-                column: arg.loc?.start.column ?? 0,
-              });
-            }
-          }
+          findRiskyReferences(arg, RISK_IDENTIFIERS, RISK_PROPERTIES).forEach((ref) => {
+            context.report({
+              message: `Logging raw ${ref.kind} '${ref.name}' risks exposing sensitive personal data (PII). Violates GDPR Article 32 (Security of Processing).`,
+              line: ref.node.loc?.start.line ?? 0,
+              column: ref.node.loc?.start.column ?? 0,
+            });
+          });
         });
       },
     };

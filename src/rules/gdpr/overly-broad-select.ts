@@ -3,6 +3,27 @@ import { Rule } from "@/src/engine/types";
 
 const QUERY_METHODS = ["find", "findOne", "findAndCount", "findAll"];
 
+// Receivers that look like data-access objects; avoids flagging Array/Map.find()
+const DATA_ACCESS_HINT =
+  /repo|repository|model|service|dao|manager|store|collection|entity|prisma|db/i;
+
+function receiverName(node: TSESTree.Node): string | null {
+  switch (node.type) {
+    case TSESTree.AST_NODE_TYPES.Identifier:
+      return node.name;
+    case TSESTree.AST_NODE_TYPES.MemberExpression:
+      return node.property.type === TSESTree.AST_NODE_TYPES.Identifier
+        ? node.property.name
+        : null;
+    case TSESTree.AST_NODE_TYPES.CallExpression:
+      return receiverName(node.callee);
+    case TSESTree.AST_NODE_TYPES.ChainExpression:
+      return receiverName(node.expression);
+    default:
+      return null;
+  }
+}
+
 export const overlyBroadSelectRule: Rule = {
   id: "gdpr/overly-broad-select",
   description:
@@ -15,6 +36,9 @@ export const overlyBroadSelectRule: Rule = {
 
         const property = callee.property;
         if (property.type !== TSESTree.AST_NODE_TYPES.Identifier) return;
+
+        const receiver = receiverName(callee.object);
+        if (!receiver || !DATA_ACCESS_HINT.test(receiver)) return;
 
         if (QUERY_METHODS.includes(property.name)) {
           const args = node.arguments;

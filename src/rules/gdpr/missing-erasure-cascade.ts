@@ -3,6 +3,34 @@ import { Rule } from "@/src/engine/types";
 
 const RELATION_DECORATORS = ["ManyToOne", "OneToOne", "BelongsTo"];
 
+/**
+ * Accepts 'CASCADE' / 'SET NULL' as string literals, plain template literals,
+ * or enum-style members such as OnDeleteType.CASCADE. SET NULL anonymises the
+ * child row, so it does not leave orphaned PII behind either.
+ */
+function isErasingAction(value: TSESTree.Node): boolean {
+  let text: string | null = null;
+  if (
+    value.type === TSESTree.AST_NODE_TYPES.Literal &&
+    typeof value.value === "string"
+  ) {
+    text = value.value;
+  } else if (
+    value.type === TSESTree.AST_NODE_TYPES.TemplateLiteral &&
+    value.expressions.length === 0
+  ) {
+    text = value.quasis.map((q) => q.value.cooked).join("");
+  } else if (
+    value.type === TSESTree.AST_NODE_TYPES.MemberExpression &&
+    value.property.type === TSESTree.AST_NODE_TYPES.Identifier
+  ) {
+    text = value.property.name;
+  }
+  if (!text) return false;
+  const normalised = text.toUpperCase().replace(/[\s_]+/g, " ");
+  return normalised === "CASCADE" || normalised === "SET NULL";
+}
+
 export const missingErasureCascadeRule: Rule = {
   id: "gdpr/missing-erasure-cascade",
   description:
@@ -40,23 +68,14 @@ export const missingErasureCascadeRule: Rule = {
                 },
               );
 
-              if (
-                onDeleteProp &&
-                onDeleteProp.value.type === TSESTree.AST_NODE_TYPES.Literal
-              ) {
-                const val = onDeleteProp.value.value;
-                if (
-                  typeof val === "string" &&
-                  val.toUpperCase() === "CASCADE"
-                ) {
-                  hasCascade = true;
-                }
+              if (onDeleteProp && isErasingAction(onDeleteProp.value)) {
+                hasCascade = true;
               }
             }
 
             if (!hasCascade) {
               context.report({
-                message: `Relation '${propertyName}' lacks 'onDelete: 'CASCADE'' configuration. May leave orphaned PII violating GDPR Article 17 (Right to Erasure).`,
+                message: `Relation '${propertyName}' lacks an 'onDelete' of 'CASCADE' (or 'SET NULL'). May leave orphaned PII violating GDPR Article 17 (Right to Erasure).`,
                 line: node.loc?.start.line ?? 0,
                 column: node.loc?.start.column ?? 0,
               });

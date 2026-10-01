@@ -1,14 +1,21 @@
 import { TSESTree } from "@typescript-eslint/typescript-estree";
 import { Rule } from "@/src/engine/types";
 
-const EXPORT_KEYWORDS = [
-  "export",
-  "download",
-  "dump",
-  "backup",
-  "gdprdata",
-  "extract",
-];
+// Matched against whole words of method names and route paths, so
+// "exportData" and "/export-data" match but "extractToken" does not.
+const EXPORT_KEYWORDS = ["export", "exports", "download", "dump", "backup"];
+
+function splitWords(text: string): string[] {
+  return text
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+}
+
+function hasExportWord(text: string): boolean {
+  return splitWords(text).some((word) => EXPORT_KEYWORDS.includes(word));
+}
 const AUTH_DECORATORS = [
   "UseGuards",
   "Auth",
@@ -18,6 +25,27 @@ const AUTH_DECORATORS = [
   "Authenticated",
 ];
 
+function hasAuthDecorator(
+  decorators: TSESTree.Decorator[] | undefined,
+): boolean {
+  return (decorators ?? []).some((decorator) => {
+    const expr = decorator.expression;
+    let name: string | null = null;
+    if (expr.type === TSESTree.AST_NODE_TYPES.CallExpression) {
+      if (expr.callee.type === TSESTree.AST_NODE_TYPES.Identifier) {
+        name = expr.callee.name;
+      }
+    } else if (expr.type === TSESTree.AST_NODE_TYPES.Identifier) {
+      name = expr.name;
+    }
+    if (!name) return false;
+    const lowered = name.toLowerCase();
+    return AUTH_DECORATORS.some((guard) =>
+      lowered.includes(guard.toLowerCase()),
+    );
+  });
+}
+
 export const unprotectedExportRouteRule: Rule = {
   id: "gdpr/unprotected-export-route",
   description:
@@ -26,7 +54,7 @@ export const unprotectedExportRouteRule: Rule = {
     return {
       MethodDefinition(node) {
         if (node.key.type !== TSESTree.AST_NODE_TYPES.Identifier) return;
-        const methodName = node.key.name.toLowerCase();
+        const methodName = node.key.name;
 
         // Also inspect route decorators (e.g., @Get('export-data')) for export keywords
         const routePathMatch = node.decorators?.some((decorator) => {
@@ -38,9 +66,7 @@ export const unprotectedExportRouteRule: Rule = {
                 arg.type === TSESTree.AST_NODE_TYPES.Literal &&
                 typeof arg.value === "string"
               ) {
-                return EXPORT_KEYWORDS.some((kw) =>
-                  arg.value.toLowerCase().includes(kw),
-                );
+                return hasExportWord(arg.value);
               }
               return false;
             });
@@ -49,28 +75,22 @@ export const unprotectedExportRouteRule: Rule = {
         });
 
         const isExportMethod =
-          EXPORT_KEYWORDS.some((keyword) => methodName.includes(keyword)) ||
+          hasExportWord(methodName) ||
           routePathMatch;
 
         if (!isExportMethod) return;
 
-        // Check if the method has security guards applied
-        const hasAuthGuard = node.decorators?.some((decorator) => {
-          const expr = decorator.expression;
-          if (expr.type === TSESTree.AST_NODE_TYPES.CallExpression) {
-            const callee = expr.callee;
-            if (callee.type === TSESTree.AST_NODE_TYPES.Identifier) {
-              return AUTH_DECORATORS.some((guard) =>
-                callee.name.toLowerCase().includes(guard.toLowerCase()),
-              );
-            }
-          } else if (expr.type === TSESTree.AST_NODE_TYPES.Identifier) {
-            return AUTH_DECORATORS.some((guard) =>
-              expr.name.toLowerCase().includes(guard.toLowerCase()),
-            );
-          }
-          return false;
-        });
+        // A guard on the method, or on the enclosing controller class, protects the route
+        const owningClass = node.parent?.parent;
+        const classDecorators =
+          owningClass &&
+          (owningClass.type === TSESTree.AST_NODE_TYPES.ClassDeclaration ||
+            owningClass.type === TSESTree.AST_NODE_TYPES.ClassExpression)
+            ? owningClass.decorators
+            : undefined;
+        const hasAuthGuard =
+          hasAuthDecorator(node.decorators) ||
+          hasAuthDecorator(classDecorators);
 
         if (!hasAuthGuard) {
           context.report({

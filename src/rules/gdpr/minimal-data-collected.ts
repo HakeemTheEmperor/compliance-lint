@@ -14,7 +14,7 @@ export const minimalDataCollectedRule: Rule = {
           if (expr.type === TSESTree.AST_NODE_TYPES.CallExpression) {
             const callee = expr.callee;
             if (callee.type === TSESTree.AST_NODE_TYPES.Identifier) {
-              return ["Post", "Put", "Patch", "Get", "Route"].includes(
+              return ["Post", "Put", "Patch", "Get", "Delete", "All", "Route"].includes(
                 callee.name,
               );
             }

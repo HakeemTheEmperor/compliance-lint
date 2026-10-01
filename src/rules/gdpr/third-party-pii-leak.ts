@@ -1,5 +1,6 @@
 import { TSESTree } from "@typescript-eslint/typescript-estree";
 import { Rule } from "@/src/engine/types";
+import { findRiskyReferences } from "../utils";
 
 const HTTP_CLIENTS = ["axios", "fetch", "http", "got", "superagent", "request"];
 const RISK_PAYLOADS = [
@@ -11,6 +12,8 @@ const RISK_PAYLOADS = [
   "req",
   "record",
 ];
+
+const RISK_PROPERTIES = ["body", "payload", "user", "customer"];
 
 export const thirdPartyPiiLeakRule: Rule = {
   id: "gdpr/third-party-pii-leak",
@@ -41,28 +44,13 @@ export const thirdPartyPiiLeakRule: Rule = {
 
         // Inspect outbound arguments for raw sensitive identifiers or property payloads
         node.arguments.forEach((arg) => {
-          if (arg.type === TSESTree.AST_NODE_TYPES.Identifier) {
-            if (RISK_PAYLOADS.includes(arg.name.toLowerCase())) {
-              context.report({
-                message: `Passing raw variable '${arg.name}' to an outbound HTTP call risks unvetted third-party PII transmission. Violates GDPR Articles 28 & 44.`,
-                line: arg.loc?.start.line ?? 0,
-                column: arg.loc?.start.column ?? 0,
-              });
-            }
-          } else if (arg.type === TSESTree.AST_NODE_TYPES.MemberExpression) {
-            if (
-              arg.property.type === TSESTree.AST_NODE_TYPES.Identifier &&
-              ["body", "payload", "user", "customer"].includes(
-                arg.property.name.toLowerCase(),
-              )
-            ) {
-              context.report({
-                message: `Passing raw property '${arg.property.name}' to an outbound HTTP call risks unvetted third-party PII transmission. Violates GDPR Articles 28 & 44.`,
-                line: arg.loc?.start.line ?? 0,
-                column: arg.loc?.start.column ?? 0,
-              });
-            }
-          }
+          findRiskyReferences(arg, RISK_PAYLOADS, RISK_PROPERTIES).forEach((ref) => {
+            context.report({
+              message: `Passing raw ${ref.kind} '${ref.name}' to an outbound HTTP call risks unvetted third-party PII transmission. Violates GDPR Articles 28 & 44.`,
+              line: ref.node.loc?.start.line ?? 0,
+              column: ref.node.loc?.start.column ?? 0,
+            });
+          });
         });
       },
     };
