@@ -1,0 +1,141 @@
+{
+  "exitCode": 1,
+  "output": {
+    "results": [
+      {
+        "filePath": "<root>/bad/suppressed.ts",
+        "messages": [
+          {
+            "ruleId": "gdpr/explicit-pii-logging",
+            "severity": "warn",
+            "message": "Logging raw variable 'customer' risks exposing sensitive personal data (PII). Violates GDPR Article 32 (Security of Processing).",
+            "line": 7,
+            "column": 12
+          }
+        ]
+      },
+      {
+        "filePath": "<root>/bad/user.controller.ts",
+        "messages": [
+          {
+            "ruleId": "gdpr/minimal-data-collected",
+            "severity": "error",
+            "message": "Request body parameter 'reqBody' uses 'any' type. Unconstrained payloads violate GDPR Data Minimization principles.",
+            "line": 5,
+            "column": 23
+          },
+          {
+            "ruleId": "gdpr/explicit-pii-logging",
+            "severity": "warn",
+            "message": "Logging raw property 'body' risks exposing sensitive personal data (PII). Violates GDPR Article 32 (Security of Processing).",
+            "line": 6,
+            "column": 31
+          },
+          {
+            "ruleId": "gdpr/third-party-pii-leak",
+            "severity": "error",
+            "message": "Passing raw property 'body' to an outbound HTTP call risks unvetted third-party PII transmission. Violates GDPR Articles 28 & 44.",
+            "line": 7,
+            "column": 46
+          },
+          {
+            "ruleId": "gdpr/overly-broad-select",
+            "severity": "warn",
+            "message": "Query method 'find()' executes without explicit field selection, risking overly broad data retrieval. Violates GDPR Article 5(1)(c).",
+            "line": 8,
+            "column": 11
+          },
+          {
+            "ruleId": "gdpr/minimal-data-collected",
+            "severity": "error",
+            "message": "Request body parameter 'payload' lacks a structured DTO type. Violates GDPR Article 5(1)(c) Data Minimization.",
+            "line": 12,
+            "column": 21
+          },
+          {
+            "ruleId": "gdpr/explicit-pii-logging",
+            "severity": "warn",
+            "message": "Logging raw variable 'user' risks exposing sensitive personal data (PII). Violates GDPR Article 32 (Security of Processing).",
+            "line": 13,
+            "column": 28
+          },
+          {
+            "ruleId": "gdpr/overly-broad-select",
+            "severity": "warn",
+            "message": "Query method 'findOne()' options object lacks a 'select' property. Violates GDPR Article 5(1)(c) Data Minimization.",
+            "line": 14,
+            "column": 11
+          },
+          {
+            "ruleId": "gdpr/unprotected-export-route",
+            "severity": "error",
+            "message": "Data export endpoint 'exportData()' lacks authentication or security guards, exposing user data dumps. Violates GDPR Articles 20 & 32.",
+            "line": 17,
+            "column": 2
+          }
+        ]
+      },
+      {
+        "filePath": "<root>/bad/user.entity.ts",
+        "messages": [
+          {
+            "ruleId": "gdpr/data-retention-missing",
+            "severity": "error",
+            "message": "Entity 'UserEntity' lacks data retention or expiration tracking. Violates GDPR Article 5(1)(e) Storage Limitation.",
+            "line": 2,
+            "column": 7
+          },
+          {
+            "ruleId": "gdpr/pii-unhashed-storage",
+            "severity": "error",
+            "message": "Sensitive field 'password' lacks a hashing or exclusion decorator. Violates GDPR Article 32.",
+            "line": 3,
+            "column": 2
+          },
+          {
+            "ruleId": "gdpr/pii-unhashed-storage",
+            "severity": "error",
+            "message": "Sensitive field 'ssn' lacks a hashing or exclusion decorator. Violates GDPR Article 32.",
+            "line": 5,
+            "column": 2
+          },
+          {
+            "ruleId": "gdpr/unencrypted-pii-column",
+            "severity": "error",
+            "message": "High-risk field 'bankAccount' in entity is stored without encryption or column transformers. Violates GDPR Article 32.",
+            "line": 7,
+            "column": 2
+          },
+          {
+            "ruleId": "gdpr/missing-erasure-cascade",
+            "severity": "error",
+            "message": "Relation 'account' lacks an 'onDelete' of 'CASCADE' (or 'SET NULL'). May leave orphaned PII violating GDPR Article 17 (Right to Erasure).",
+            "line": 9,
+            "column": 2
+          },
+          {
+            "ruleId": "gdpr/missing-erasure-cascade",
+            "severity": "error",
+            "message": "Relation 'profile' lacks an 'onDelete' of 'CASCADE' (or 'SET NULL'). May leave orphaned PII violating GDPR Article 17 (Right to Erasure).",
+            "line": 12,
+            "column": 2
+          }
+        ]
+      },
+      {
+        "filePath": "<root>/bad/view.tsx",
+        "messages": [
+          {
+            "ruleId": "gdpr/explicit-pii-logging",
+            "severity": "warn",
+            "message": "Logging raw variable 'user' risks exposing sensitive personal data (PII). Violates GDPR Article 32 (Security of Processing).",
+            "line": 2,
+            "column": 14
+          }
+        ]
+      }
+    ],
+    "errorCount": 10,
+    "warningCount": 6
+  }
+}

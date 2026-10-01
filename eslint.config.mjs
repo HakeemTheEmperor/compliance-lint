@@ -22,6 +22,13 @@ export default defineConfig([
     },
   },
   {
-    ignores: ["dist/", "node_modules/", "bin/", "*.mjs", "*.js"],
+    ignores: [
+      "dist/",
+      "node_modules/",
+      "bin/",
+      "test/fixtures/",
+      "*.mjs",
+      "*.js",
+    ],
   },
 ]);
