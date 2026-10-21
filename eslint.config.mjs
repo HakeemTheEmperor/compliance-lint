@@ -29,6 +29,24 @@ export default defineConfig([
     rules: { "boundaries/package-boundaries": "error" },
   },
   {
+    // Plugins are written against the public plugin API only, as if they lived in their own repo.
+    files: ["packages/plugin-*/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@complinter/*"],
+              message:
+                'Plugins may only import from "complinter/plugin-api", not from internal packages.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     ignores: [
       "**/dist/",
       "node_modules/",

@@ -73,6 +73,27 @@ void test(
     const tarball = path.join(packDir, packed[0].filename);
     assert.ok(fs.existsSync(tarball), "npm pack produced a tarball");
 
+    // The NestJS plugin is packed too: it is published separately and must
+    // work against the installed CLI using only the public plugin API.
+    const packedPlugin = JSON.parse(
+      npm(
+        [
+          "pack",
+          "--workspace",
+          "@complinter/plugin-nestjs",
+          "--pack-destination",
+          packDir,
+          "--json",
+        ],
+        repoRoot,
+      ),
+    ) as { filename: string }[];
+    const pluginTarball = path.join(packDir, packedPlugin[0].filename);
+    assert.ok(
+      fs.existsSync(pluginTarball),
+      "npm pack produced the plugin tarball",
+    );
+
     // --- install into a clean consumer project
     const project = path.join(work, "consumer");
     fs.mkdirSync(path.join(project, "src"), { recursive: true });
@@ -84,6 +105,7 @@ void test(
       [
         "install",
         tarball,
+        pluginTarball,
         "--no-audit",
         "--no-fund",
         "--ignore-scripts",
@@ -113,9 +135,11 @@ void test(
       assert.deepStrictEqual(Object.keys(manifest.dependencies ?? {}), [
         "@typescript-eslint/typescript-estree",
       ]);
-      assert.ok(
-        !fs.existsSync(path.join(project, "node_modules", "@complinter")),
-        "no @complinter/* package was installed",
+      // Only the separately packed plugin is installed under @complinter/;
+      // none of the internal packages leaked in.
+      assert.deepStrictEqual(
+        fs.readdirSync(path.join(project, "node_modules", "@complinter")),
+        ["plugin-nestjs"],
       );
       const types = fs.readFileSync(
         path.join(installed, "dist", "plugin-api.d.ts"),
@@ -246,6 +270,83 @@ void test(
           "esm/no-console-log@2",
           "gdpr/explicit-pii-logging@2",
         ]);
+      },
+    );
+
+    await t.test(
+      "the packed NestJS plugin works against the installed CLI",
+      () => {
+        const pluginManifest = JSON.parse(
+          fs.readFileSync(
+            path.join(
+              project,
+              "node_modules",
+              "@complinter",
+              "plugin-nestjs",
+              "package.json",
+            ),
+            "utf-8",
+          ),
+        ) as {
+          dependencies?: Record<string, string>;
+          peerDependencies?: Record<string, string>;
+        };
+        // Only the public plugin API is used: no internal packages, complinter is a peer
+        assert.deepStrictEqual(pluginManifest.dependencies ?? {}, {});
+        assert.deepStrictEqual(
+          Object.keys(pluginManifest.peerDependencies ?? {}),
+          ["complinter"],
+        );
+        // npm reused the one installed complinter instead of nesting a second copy
+        assert.ok(
+          !fs.existsSync(
+            path.join(
+              project,
+              "node_modules",
+              "@complinter",
+              "plugin-nestjs",
+              "node_modules",
+              "complinter",
+            ),
+          ),
+        );
+
+        fs.writeFileSync(
+          path.join(project, "src", "users.controller.ts"),
+          [
+            "class User { password: string; }",
+            '@Controller("users")',
+            "export class UsersController {",
+            '  @Get(":email")',
+            "  find(): User { return null as never; }",
+            "}",
+            "",
+          ].join("\n"),
+        );
+        fs.rmSync(path.join(project, "src", "app.ts"));
+        fs.writeFileSync(
+          path.join(project, "compliance.json"),
+          JSON.stringify({ plugins: ["@complinter/plugin-nestjs"] }),
+        );
+
+        const r = runNode(
+          [cli, "src", "--no-cache", "--format", "json"],
+          project,
+        );
+        assert.strictEqual(r.code, 1, r.err);
+        const parsed = JSON.parse(r.out) as {
+          results: { messages: { ruleId: string }[] }[];
+        };
+        assert.deepStrictEqual(
+          parsed.results
+            .flatMap((res) => res.messages.map((m) => m.ruleId))
+            .sort(),
+          [
+            "gdpr/pii-unhashed-storage",
+            "nestjs/pii-in-url",
+            "nestjs/unserialized-sensitive-response",
+          ],
+        );
       },
     );
 
