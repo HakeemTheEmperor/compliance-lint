@@ -4,18 +4,23 @@ import { parseArgs } from "node:util";
 import {
   EngineRunner,
   getFiles,
-  applySuppressions,
   reportToConsole,
   formatJson,
   formatSarif,
   LinterCache,
-  hashContent,
-  loadConfig,
+  readConfig,
+  resolveConfig,
+  findUnknownRules,
+  loadPlugins,
+  assemblePlugins,
+  createCacheFingerprint,
   ConfigError,
+  PluginError,
+  eraseAdapter,
 } from "@complinter/core";
-import type { FileReport } from "@complinter/core";
-import { parseSource } from "@complinter/lang-typescript";
-import { allRules } from "@complinter/rules-gdpr";
+import type { FileReport, LoadedPlugin } from "@complinter/core";
+import { typescriptAdapter } from "@complinter/lang-typescript";
+import { gdprPlugin } from "@complinter/rules-gdpr";
 import { getVersion } from "./version";
 
 const HELP = `complint - static analysis for privacy/compliance risks
@@ -35,14 +40,17 @@ Options:
 Exit codes:
   0  no errors found (warnings do not fail the run)
   1  one or more error-level violations
-  2  usage, config, or file errors (e.g. a file could not be parsed)
+  2  usage, config, plugin, or file errors (e.g. a file could not be parsed)
 `;
 
 export const EXIT_OK = 0;
 export const EXIT_VIOLATIONS = 1;
 export const EXIT_FAILURE = 2;
 
-export function runCli(argv: string[], cwd: string = process.cwd()): number {
+export async function runCli(
+  argv: string[],
+  cwd: string = process.cwd(),
+): Promise<number> {
   let values;
   let positionals: string[];
   try {
@@ -84,30 +92,56 @@ export function runCli(argv: string[], cwd: string = process.cwd()): number {
     return EXIT_FAILURE;
   }
 
+  // Built-ins are bundled and always loaded; plugins named in the config add to them.
+  const builtins: LoadedPlugin[] = [
+    { plugin: gdprPlugin, spec: "builtin", version: getVersion() },
+  ];
+
   let config;
+  let loadedPlugins: LoadedPlugin[];
+  let assembled;
+  let runner;
   try {
-    config = loadConfig(cwd, values.config);
+    const userConfig = readConfig(cwd, values.config);
+    loadedPlugins = await loadPlugins(userConfig.plugins, cwd);
+    assembled = assemblePlugins(
+      builtins,
+      loadedPlugins,
+      [eraseAdapter(typescriptAdapter)],
+    );
+    config = resolveConfig(userConfig, assembled.defaultSeverities);
+    runner = new EngineRunner(assembled.rules, config.rules, assembled.adapters);
   } catch (err) {
-    if (err instanceof ConfigError) {
+    if (err instanceof ConfigError || err instanceof PluginError) {
       console.error(err.message);
       return EXIT_FAILURE;
     }
     throw err;
   }
 
-  const files = getFiles(targetDir, config.ignore);
-  const runner = new EngineRunner(allRules, config.rules);
+  for (const id of findUnknownRules(
+    config,
+    assembled.rules.map((r) => r.id),
+  )) {
+    console.warn(
+      `[Warning] Unknown rule "${id}" in ${values.config ?? "compliance.json"}.`,
+    );
+  }
+
+  const files = getFiles(targetDir, config.ignore, targetDir, (name) =>
+    runner.supportsFile(name),
+  );
   const cache = values["no-cache"]
     ? null
     : new LinterCache(
         path.join(cwd, ".gdpr-cache.json"),
-        hashContent(
-          JSON.stringify({
-            version: getVersion(),
-            rules: allRules.map((r) => r.id),
-            config: config.rules,
-          }),
-        ),
+        createCacheFingerprint({
+          version: getVersion(),
+          adapters: assembled.adapters.map((a) => a.id),
+          plugins: [...builtins, ...loadedPlugins],
+          ruleIds: assembled.rules.map((r) => r.id),
+          severities: config.rules,
+        }),
       );
   const reports: FileReport[] = [];
   let failedFiles = 0;
@@ -129,8 +163,7 @@ export function runCli(argv: string[], cwd: string = process.cwd()): number {
     }
 
     try {
-      const { ast, comments } = parseSource(code, file);
-      const violations = applySuppressions(runner.run(ast), comments);
+      const violations = runner.lintSource(code, file);
 
       cache?.setCachedViolations(file, code, violations);
       reports.push({ filePath: file, violations });
@@ -148,7 +181,7 @@ export function runCli(argv: string[], cwd: string = process.cwd()): number {
     console.log(result.output);
     hasErrors = result.hasErrors;
   } else if (format === "sarif") {
-    const result = formatSarif(reports, allRules, getVersion());
+    const result = formatSarif(reports, assembled.rules, getVersion());
     console.log(result.output);
     hasErrors = result.hasErrors;
   } else {

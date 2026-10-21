@@ -2,30 +2,17 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { ComplianceConfig, RuleSeverity } from "../engine/types";
 
-export const DEFAULT_CONFIG: ComplianceConfig = {
-  ignore: [
-    "node_modules",
-    "dist",
-    "**/*.spec.ts",
-    "**/*.test.ts",
-    "**/*.spec.tsx",
-    "**/*.test.tsx",
-    "**/*.spec.js",
-    "**/*.test.js",
-  ],
-  rules: {
-    "gdpr/pii-unhashed-storage": "error",
-    "gdpr/minimal-data-collected": "error",
-    "gdpr/data-retention-missing": "warn",
-    "gdpr/explicit-pii-logging": "error",
-    "gdpr/overly-broad-select": "warn",
-    "gdpr/missing-consent-flag": "error",
-    "gdpr/missing-erasure-cascade": "error",
-    "gdpr/third-party-pii-leak": "error",
-    "gdpr/unencrypted-pii-column": "error",
-    "gdpr/unprotected-export-route": "error",
-  },
-};
+/** Files and folders skipped when the config has no `ignore` of its own. */
+export const DEFAULT_IGNORE: readonly string[] = [
+  "node_modules",
+  "dist",
+  "**/*.spec.ts",
+  "**/*.test.ts",
+  "**/*.spec.tsx",
+  "**/*.test.tsx",
+  "**/*.spec.js",
+  "**/*.test.js",
+];
 
 const SEVERITIES: RuleSeverity[] = ["error", "warn", "off"];
 
@@ -36,26 +23,29 @@ export class ConfigError extends Error {
   }
 }
 
+/** What the user wrote in compliance.json, validated but not yet merged with defaults. */
+export interface UserConfig {
+  ignore?: string[];
+  rules: Record<string, RuleSeverity>;
+  plugins: string[];
+}
+
 /**
- * Loads and validates the config. A missing file yields the defaults; a file
- * that exists but is malformed throws a ConfigError rather than silently
- * weakening the checks. Unknown rule ids are reported via `warn` (they may
- * belong to a rule set that is not installed).
- *
- * A user-supplied `ignore` list replaces the default one.
+ * Reads and validates compliance.json. A missing file yields an empty user
+ * config; a file that exists but is malformed throws a ConfigError rather than
+ * silently weakening the checks.
  */
-export function loadConfig(
+export function readConfig(
   cwd: string = process.cwd(),
   configFile?: string,
-  warn: (message: string) => void = console.warn,
-): ComplianceConfig {
+): UserConfig {
   const configPath = configFile
     ? path.resolve(cwd, configFile)
     : path.join(cwd, "compliance.json");
 
   if (!fs.existsSync(configPath)) {
     if (configFile) throw new ConfigError(`Config file not found: ${configPath}`);
-    return { ...DEFAULT_CONFIG, rules: { ...DEFAULT_CONFIG.rules } };
+    return { rules: {}, plugins: [] };
   }
 
   let parsed: unknown;
@@ -70,9 +60,9 @@ export function loadConfig(
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new ConfigError(`${configPath} must contain a JSON object.`);
   }
-  const raw = parsed as { ignore?: unknown; rules?: unknown };
+  const raw = parsed as { ignore?: unknown; rules?: unknown; plugins?: unknown };
 
-  let ignore = DEFAULT_CONFIG.ignore;
+  let ignore: string[] | undefined;
   if (raw.ignore !== undefined) {
     if (
       !Array.isArray(raw.ignore) ||
@@ -83,7 +73,7 @@ export function loadConfig(
     ignore = raw.ignore;
   }
 
-  const rules: Record<string, RuleSeverity> = { ...DEFAULT_CONFIG.rules };
+  const rules: Record<string, RuleSeverity> = {};
   if (raw.rules !== undefined) {
     if (!raw.rules || typeof raw.rules !== "object" || Array.isArray(raw.rules)) {
       throw new ConfigError(`"rules" in ${configPath} must be an object.`);
@@ -94,12 +84,59 @@ export function loadConfig(
           `Invalid severity ${JSON.stringify(severity)} for rule "${id}" in ${configPath}. Use "error", "warn" or "off".`,
         );
       }
-      if (!(id in DEFAULT_CONFIG.rules)) {
-        warn(`[Warning] Unknown rule "${id}" in ${configPath}.`);
-      }
       rules[id] = severity as RuleSeverity;
     }
   }
 
-  return { ignore, rules };
+  let plugins: string[] = [];
+  if (raw.plugins !== undefined) {
+    if (
+      !Array.isArray(raw.plugins) ||
+      !raw.plugins.every((p) => typeof p === "string" && p.trim() !== "")
+    ) {
+      throw new ConfigError(
+        `"plugins" in ${configPath} must be an array of non-empty strings.`,
+      );
+    }
+    plugins = raw.plugins as string[];
+    const duplicate = plugins.find((p, i) => plugins.indexOf(p) !== i);
+    if (duplicate !== undefined) {
+      throw new ConfigError(`"plugins" in ${configPath} lists "${duplicate}" twice.`);
+    }
+  }
+
+  return { ignore, rules, plugins };
+}
+
+/**
+ * Merges the user's config over the defaults supplied by the rule sets that
+ * are loaded. A user-supplied `ignore` list replaces the default one.
+ */
+export function resolveConfig(
+  user: UserConfig,
+  defaultRules: Readonly<Record<string, RuleSeverity>> = {},
+): ComplianceConfig {
+  return {
+    ignore: user.ignore ?? [...DEFAULT_IGNORE],
+    rules: { ...defaultRules, ...user.rules },
+    plugins: user.plugins,
+  };
+}
+
+/** Reads the config file and merges it over `defaultRules`. */
+export function loadConfig(
+  cwd: string = process.cwd(),
+  configFile?: string,
+  defaultRules: Readonly<Record<string, RuleSeverity>> = {},
+): ComplianceConfig {
+  return resolveConfig(readConfig(cwd, configFile), defaultRules);
+}
+
+/** Rule ids named in the config that no loaded rule provides. */
+export function findUnknownRules(
+  config: ComplianceConfig,
+  knownRuleIds: Iterable<string>,
+): string[] {
+  const known = new Set(knownRuleIds);
+  return Object.keys(config.rules).filter((id) => !known.has(id));
 }

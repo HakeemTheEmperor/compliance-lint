@@ -12,12 +12,21 @@
       ],
       "@complinter/rules-gdpr": [
         "packages/rules-gdpr/src/index.ts"
+      ],
+      "complinter/plugin-api": [
+        "packages/complinter/src/plugin-api.ts"
+      ],
+      "@complinter/plugin-nestjs": [
+        "packages/plugin-nestjs/src/index.ts"
       ]
     }
   },
   "include": [
     "packages/*/src/**/*",
-    "packages/*/test/**/*.ts"
+    "packages/*/test/**/*.ts",
+    "packages/*/tsup.config.ts",
+    "tools/**/*.ts",
+    "tools/**/*.mts"
   ],
   "exclude": [
     "node_modules",

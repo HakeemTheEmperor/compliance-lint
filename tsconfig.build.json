@@ -9,9 +9,6 @@
     },
     {
       "path": "packages/rules-gdpr/tsconfig.build.json"
-    },
-    {
-      "path": "packages/complinter/tsconfig.build.json"
     }
   ]
 }

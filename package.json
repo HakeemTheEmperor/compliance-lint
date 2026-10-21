@@ -10,17 +10,23 @@
     "test:coverage": "c8 --reporter=text --reporter=lcov node scripts/run-tests.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "clean": "tsc -b --clean tsconfig.build.json",
-    "build": "tsc -b tsconfig.build.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "clean": "tsc -b --clean tsconfig.build.json && node -e \"const {rmSync}=require('fs');for (const d of ['complinter','plugin-nestjs']) rmSync('packages/'+d+'/dist',{recursive:true,force:true})\"",
+    "build": "tsc -b tsconfig.build.json && npm run build --workspace complinter && npm run build --workspace @complinter/plugin-nestjs",
+    "changeset": "changeset",
+    "version-packages": "changeset version && npm install --package-lock-only",
+    "release:check": "node scripts/check-release.mjs"
   },
   "author": "Toluwalase Akinyemi",
   "license": "ISC",
   "devDependencies": {
+    "@changesets/cli": "^3.0.3",
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.4.1",
     "c8": "^12.0.0",
     "eslint": "^10.9.1",
     "tsconfig-paths": "^4.2.0",
+    "tsup": "^8.5.1",
     "tsx": "^4.23.13",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.69.0"

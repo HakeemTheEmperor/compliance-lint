@@ -1,6 +1,7 @@
 import eslint from "@eslint/js";
 import { defineConfig } from "eslint/config";
 import tseslint from "typescript-eslint";
+import boundaries from "./tools/eslint-plugin-boundaries/index.mjs";
 
 export default defineConfig([
   eslint.configs.recommended,
@@ -18,6 +19,30 @@ export default defineConfig([
       "@typescript-eslint/no-unused-vars": [
         "error",
         { argsIgnorePattern: "^_" },
+      ],
+    },
+  },
+  {
+    // Keep workspace packages independent: no deep or cross-package relative imports.
+    files: ["packages/**/*.ts"],
+    plugins: { boundaries },
+    rules: { "boundaries/package-boundaries": "error" },
+  },
+  {
+    // Plugins are written against the public plugin API only, as if they lived in their own repo.
+    files: ["packages/plugin-*/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@complinter/*"],
+              message:
+                'Plugins may only import from "complinter/plugin-api", not from internal packages.',
+            },
+          ],
+        },
       ],
     },
   },

@@ -45,34 +45,54 @@ repository later.
 packages/
   core/                          # @complinter/core (private for now)
     src/index.ts                 # Public entry point; other packages import only from here
-    src/engine/                  # runner, file discovery, cache, suppression, types
-    src/config/config-loader.ts  # compliance.json loading, validation, defaults
+    src/engine/                  # runner, language adapters, file discovery, cache,
+                                 # suppression, tree walking, types
+    src/config/config-loader.ts  # compliance.json reading, validation, merging with defaults
+    src/plugin/                  # plugin types, validation, loader, cache fingerprint
     src/reporters/               # console, json, sarif
     test/
   lang-typescript/               # @complinter/lang-typescript
     src/parse-file.ts            # Source -> AST (+ comments)
+    src/adapter.ts               # typescriptAdapter and the defineRule helper
     test/
   rules-gdpr/                    # @complinter/rules-gdpr
     src/index.ts                 # Rule registry (allRules)
     src/utils.ts                 # Helpers shared between rules
+    src/index.ts                 # also exports defaultSeverities and gdprPlugin
     src/gdpr/                    # GDPR rule implementations
     test/gdpr/                   # Rule-level tests
     test/e2e/                    # Cross-rule fixture tests
     docs/rules/gdpr/             # One guide per rule
+  plugin-nestjs/                 # @complinter/plugin-nestjs (private for now)
+    src/                         # Rules; imports only "complinter/plugin-api"
+    test/                        # Rule tests, written with lintText from the plugin API
+    docs/rules/                  # One guide per rule
   complinter/                    # The CLI package (bin: complint)
     src/cli.ts                   # Thin bin entry; calls run.ts
     src/run.ts                   # Argument parsing, scan orchestration, exit codes
+    src/plugin-api.ts            # Public API for plugin authors ("complinter/plugin-api")
+    tsup.config.ts               # Bundles the CLI and inlines the internal packages
     test/cli/                    # CLI exit codes and options
     test/compat/                 # Golden-output compatibility tests
+    test/pack/                   # Packs the tarball, installs it cleanly and runs it
     test/fixtures/compat/        # Fixture corpus + golden files
 
-scripts/run-tests.mjs            # Runs every packages/*/test/**/*.test.ts
-docs/                            # PRD and project-level documentation
+scripts/run-tests.mjs            # Runs every packages/*/test and tools test
+scripts/check-release.mjs        # Release guard used by the publish workflow
+.changeset/                      # Pending changesets (release notes) and config
+tools/eslint-plugin-boundaries/  # Lint rule that enforces the package boundaries
+docs/                            # PRD, plugin authoring guide (plugins.md)
 ```
 
 Packages import each other only through the package name (for example
 `import { Rule } from "@complinter/core"`), never through relative paths or
-files inside another package's `src/`.
+files inside another package's `src/` or `dist/`. Each package's `exports` field exposes only its entry point, and the `boundaries/package-boundaries` lint rule fails `npm run lint` on deep imports (`@complinter/core/dist/...`) and on relative imports that cross a package boundary.
+
+Only `complinter` is published. Its build (`tsup`) inlines `@complinter/core`, `@complinter/lang-typescript` and `@complinter/rules-gdpr` into `dist/cli.js` and `dist/plugin-api.js`, so they are build-time `devDependencies` of the CLI package. Plugin authors import `complinter/plugin-api` and list `complinter` as a peer dependency.
+
+## Writing a plugin
+
+Rules for a framework or library belong in a plugin, not in `rules-gdpr`. The [plugin authoring guide](docs/plugins.md) covers the API, testing with `lintText`, and packaging. `packages/plugin-nestjs` is the reference example; plugin packages may import only `complinter/plugin-api`, which lint enforces.
 
 ## Branches and Changes
 
@@ -119,6 +139,8 @@ export const exampleRule: Rule = {
 };
 ```
 
+Rules are written for one language. A rule's optional `language` field names the language adapter it runs on and defaults to `"typescript"`, so the existing rules need no change. Rules for the TypeScript vocabulary can also be written with `defineRule` from `@complinter/lang-typescript`, which types the visitor parameters and rejects unknown visitor names (`npm run typecheck` enforces this).
+
 `create(context)` is called **once per file**, not once per node, so state kept in the closure (for example a registry collected in a `Program` visitor) is shared by every visitor for that file.
 
 ### Rule requirements
@@ -136,7 +158,7 @@ export const exampleRule: Rule = {
 
 ### Rule registry
 
-The rule registry is the source of truth for shipped rules. After adding a rule, update `packages/rules-gdpr/src/index.ts` and the default configuration in `packages/core/src/config/config-loader.ts` when the rule should be enabled by default.
+The rule registry is the source of truth for shipped rules. After adding a rule, add it to `allRules` in `packages/rules-gdpr/src/index.ts` and give it an entry in `defaultSeverities` there (core itself knows no rule ids). A rule with no default severity is an error. The built-in rules are exposed as `gdprPlugin`, which the CLI always loads.
 
 If a rule is intentionally opt-in, document that clearly in the README and its rule page.
 
@@ -223,6 +245,14 @@ For a CLI or configuration change, include the relevant engine, config, reporter
 
 If a command cannot be run locally, state that in the pull request and include the reason. Do not hide failing tests or weaken assertions just to make a check pass.
 
+## Releases
+
+Versions and changelogs are managed with [changesets](https://github.com/changesets/changesets).
+
+- **Contributors:** a change that users of `complinter` can notice (a rule's behavior, CLI or config behavior, the plugin API, shipped docs) needs a changeset. Run `npm run changeset`, choose `complinter` and the bump, and write the entry for users. Commit the generated file in `.changeset/` with your change. Because the internal packages are bundled into `complinter`, a change to `core`, `lang-typescript` or `rules-gdpr` is a change to `complinter`. Pick `patch` for fixes, `minor` for new rules, options or plugin API additions, and `major` for anything that changes existing rule ids, default severities, `compliance.json` or CLI behavior. Tests, refactors and internal docs need none.
+- **Maintainers:** run `npm run version-packages` to apply the pending changesets (it updates versions, `packages/complinter/CHANGELOG.md` and the lockfile), review and merge that change, then publish a GitHub release tagged with the new version. `.github/workflows/publish.yml` does the rest. Only `complinter` publishes; `npm run release:check` fails the workflow if any other package becomes publishable.
+- While the plugin API is experimental, say so in the changeset when it changes, and bump `apiVersion` only for breaking changes.
+
 ## Pull Requests
 
 A useful pull request description includes:
@@ -232,6 +262,7 @@ A useful pull request description includes:
 - How the behavior was tested.
 - Any compatibility considerations.
 - Known limitations or follow-up work.
+- The changeset, when the change is user-facing.
 
 Keep the review surface easy to inspect. Include before-and-after examples for changes to rule detection or console output. Reviewers should be able to reproduce the reported behavior from the tests and documentation.
 

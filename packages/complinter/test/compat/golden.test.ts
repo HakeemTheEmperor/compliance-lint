@@ -89,14 +89,14 @@ function normalise(raw: string, root: string): unknown {
   return parsed;
 }
 
-function capture(argv: string[], cwd: string): Snapshot {
+async function capture(argv: string[], cwd: string): Promise<Snapshot> {
   const log = console.log;
   const error = console.error;
   let out = "";
   console.log = (...a: unknown[]) => void (out += a.join(" ") + "\n");
   console.error = () => undefined;
   try {
-    const exitCode = runCli(argv, cwd);
+    const exitCode = await runCli(argv, cwd);
     return { exitCode, output: normalise(out, cwd) };
   } finally {
     console.log = log;
@@ -125,8 +125,8 @@ function check(name: string, actual: Snapshot): void {
 const base = (...extra: string[]) => [PROJECT, "--no-cache", ...extra];
 
 void test("Compatibility golden outputs", async (t) => {
-  await t.test("default config, JSON format", () => {
-    const snap = capture(base("--format", "json"), PROJECT);
+  await t.test("default config, JSON format", async () => {
+    const snap = await capture(base("--format", "json"), PROJECT);
     assert.strictEqual(snap.exitCode, 1);
 
     // Guard: the corpus must exercise every built-in rule.
@@ -141,29 +141,38 @@ void test("Compatibility golden outputs", async (t) => {
     check("default-json", snap);
   });
 
-  await t.test("default config, SARIF format", () => {
-    const snap = capture(base("--format", "sarif"), PROJECT);
+  await t.test("default config, SARIF format", async () => {
+    const snap = await capture(base("--format", "sarif"), PROJECT);
     assert.strictEqual(snap.exitCode, 1);
     check("default-sarif", snap);
   });
 
-  await t.test("custom config: overrides, off, custom ignore", () => {
+  await t.test("custom config: overrides, off, custom ignore", async () => {
     const config = path.join(FIXTURES, "configs", "custom.json");
-    const snap = capture(base("--format", "json", "--config", config), PROJECT);
+    const snap = await capture(
+      base("--format", "json", "--config", config),
+      PROJECT,
+    );
     assert.strictEqual(snap.exitCode, 1);
     check("custom-json", snap);
   });
 
-  await t.test("warnings only do not fail the run", () => {
+  await t.test("warnings only do not fail the run", async () => {
     const config = path.join(FIXTURES, "configs", "warn-only.json");
-    const snap = capture(base("--format", "json", "--config", config), PROJECT);
+    const snap = await capture(
+      base("--format", "json", "--config", config),
+      PROJECT,
+    );
     assert.strictEqual(snap.exitCode, 0);
     check("warn-only-json", snap);
   });
 
-  await t.test("compliant files exit 0 with no findings", () => {
+  await t.test("compliant files exit 0 with no findings", async () => {
     const good = path.join(PROJECT, "good");
-    const snap = capture([good, "--no-cache", "--format", "json"], PROJECT);
+    const snap = await capture(
+      [good, "--no-cache", "--format", "json"],
+      PROJECT,
+    );
     assert.strictEqual(snap.exitCode, 0);
     check("good-json", snap);
   });

@@ -1,12 +1,11 @@
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
-import { Rule } from "../engine/types";
 import { FileReport } from "./console";
 
 /** SARIF 2.1.0 report for GitHub code scanning and similar tools. */
 export function formatSarif(
   reports: FileReport[],
-  rules: Rule[],
+  rules: readonly { id: string; description: string }[],
   version: string,
 ): { output: string; hasErrors: boolean } {
   let hasErrors = false;

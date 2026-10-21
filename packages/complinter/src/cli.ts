@@ -2,4 +2,4 @@
 
 import { runCli } from "./run";
 
-process.exit(runCli(process.argv.slice(2)));
+void runCli(process.argv.slice(2)).then((code) => process.exit(code));
