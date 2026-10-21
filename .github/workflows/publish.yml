@@ -1,47 +1,50 @@
 name: Publish package
 
 on:
-    release:
-        types: [published]
+  release:
+    types: [published]
 
 permissions:
-    contents: read
-    id-token: write
+  contents: read
+  id-token: write
 
 jobs:
-    publish:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Check out the release
-              uses: actions/checkout@v4
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the release
+        uses: actions/checkout@v4
 
-            - name: Set up Node.js
-              uses: actions/setup-node@v4
-              with:
-                  node-version: 22
-                  registry-url: https://registry.npmjs.org
-                  cache: npm
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: npm
 
-            - name: Install dependencies
-              run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-            - name: Lint
-              run: npm run lint
+      - name: Lint
+        run: npm run lint
 
-            - name: Test
-              run: npm test
+      - name: Test
+        run: npm test
 
-            - name: Build
-              run: npm run build
+      - name: Build
+        run: npm run build
 
-            # Fails if the tag does not match the version, a package other than
-            # complinter is publishable, or the build output is missing.
-            - name: Check the release
-              run: npm run release:check
-              env:
-                  RELEASE_TAG: ${{ github.event.release.tag_name }}
+      # Fails if the tag does not match the version, a package other than
+      # complinter is publishable, or the build output is missing.
+      - name: Check the release
+        run: npm run release:check
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
 
-            # The repo is a workspace; only the CLI package is published. It bundles
-            # the internal @complinter/* packages, so they are never published.
-            - name: Publish to npm
-              run: npm publish --workspace complinter --provenance --access public
+      - name: Use a recent npm (trusted publishing needs 11.5.1+)
+        run: npm install -g npm@latest
+
+      # The repo is a workspace; only the CLI package is published. It bundles
+      # the internal @complinter/* packages, so they are never published.
+      - name: Publish to npm
+        run: npm publish --workspace complinter --provenance --access public
