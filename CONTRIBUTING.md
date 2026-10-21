@@ -37,26 +37,62 @@ The project is written in TypeScript and uses `@typescript-eslint/typescript-est
 
 ## Project Layout
 
+This is an npm workspaces monorepo. Each package has its own `package.json`,
+`tsconfig.build.json` and tests, so any of them could be moved to its own
+repository later.
+
 ```text
-src/
-  cli.ts                         # CLI entry point and scan orchestration
-  config/config-loader.ts        # compliance.json loading and defaults
-  engine/
-    file-discovery.ts            # Recursive TypeScript file discovery
-    parser.ts                    # Parser helpers
-    runner.ts                    # AST traversal and rule execution
-    types.ts                     # Rule, config, and violation contracts
-  reporters/console.ts           # Terminal output and exit status
-  rules/
-    gdpr/                        # GDPR rule implementations
+packages/
+  core/                          # @complinter/core (private for now)
+    src/index.ts                 # Public entry point; other packages import only from here
+    src/engine/                  # runner, language adapters, file discovery, cache,
+                                 # suppression, tree walking, types
+    src/config/config-loader.ts  # compliance.json reading, validation, merging with defaults
+    src/plugin/                  # plugin types, validation, loader, cache fingerprint
+    src/reporters/               # console, json, sarif
+    test/
+  lang-typescript/               # @complinter/lang-typescript
+    src/parse-file.ts            # Source -> AST (+ comments)
+    src/adapter.ts               # typescriptAdapter and the defineRule helper
+    test/
+  rules-gdpr/                    # @complinter/rules-gdpr
+    src/index.ts                 # Rule registry (allRules)
+    src/utils.ts                 # Helpers shared between rules
+    src/index.ts                 # also exports defaultSeverities and gdprPlugin
+    src/gdpr/                    # GDPR rule implementations
+    test/gdpr/                   # Rule-level tests
+    test/e2e/                    # Cross-rule fixture tests
+    docs/rules/gdpr/             # One guide per rule
+  plugin-nestjs/                 # @complinter/plugin-nestjs (private for now)
+    src/                         # Rules; imports only "complinter/plugin-api"
+    test/                        # Rule tests, written with lintText from the plugin API
+    docs/rules/                  # One guide per rule
+  complinter/                    # The CLI package (bin: complint)
+    src/cli.ts                   # Thin bin entry; calls run.ts
+    src/run.ts                   # Argument parsing, scan orchestration, exit codes
+    src/plugin-api.ts            # Public API for plugin authors ("complinter/plugin-api")
+    tsup.config.ts               # Bundles the CLI and inlines the internal packages
+    test/cli/                    # CLI exit codes and options
+    test/compat/                 # Golden-output compatibility tests
+    test/pack/                   # Packs the tarball, installs it cleanly and runs it
+    test/fixtures/compat/        # Fixture corpus + golden files
 
-test/
-  rules/gdpr/                    # Rule-level tests
-  engine/                        # Runner, discovery, and DX tests
-  e2e/                           # Cross-rule fixture tests
-
-docs/rules/gdpr/                 # One guide per rule
+scripts/run-tests.mjs            # Runs every packages/*/test and tools test
+scripts/check-release.mjs        # Release guard used by the publish workflow
+.changeset/                      # Pending changesets (release notes) and config
+tools/eslint-plugin-boundaries/  # Lint rule that enforces the package boundaries
+docs/                            # PRD, plugin authoring guide (plugins.md)
 ```
+
+Packages import each other only through the package name (for example
+`import { Rule } from "@complinter/core"`), never through relative paths or
+files inside another package's `src/` or `dist/`. Each package's `exports` field exposes only its entry point, and the `boundaries/package-boundaries` lint rule fails `npm run lint` on deep imports (`@complinter/core/dist/...`) and on relative imports that cross a package boundary.
+
+Only `complinter` is published. Its build (`tsup`) inlines `@complinter/core`, `@complinter/lang-typescript` and `@complinter/rules-gdpr` into `dist/cli.js` and `dist/plugin-api.js`, so they are build-time `devDependencies` of the CLI package. Plugin authors import `complinter/plugin-api` and list `complinter` as a peer dependency.
+
+## Writing a plugin
+
+Rules for a framework or library belong in a plugin, not in `rules-gdpr`. The [plugin authoring guide](docs/plugins.md) covers the API, testing with `lintText`, and packaging. `packages/plugin-nestjs` is the reference example; plugin packages may import only `complinter/plugin-api`, which lint enforces.
 
 ## Branches and Changes
 
@@ -78,11 +114,11 @@ docs: document GDPR rule limitations
 
 ## Adding or Changing a Rule
 
-A rule implements the `Rule` interface from `src/engine/types.ts`:
+A rule implements the `Rule` interface exported by `@complinter/core` (defined in `packages/core/src/engine/types.ts`):
 
 ```ts
 import { TSESTree } from "@typescript-eslint/typescript-estree";
-import { Rule } from "@/src/engine/types";
+import { Rule } from "@complinter/core";
 
 export const exampleRule: Rule = {
   id: "gdpr/example-rule",
@@ -103,32 +139,37 @@ export const exampleRule: Rule = {
 };
 ```
 
+Rules are written for one language. A rule's optional `language` field names the language adapter it runs on and defaults to `"typescript"`, so the existing rules need no change. Rules for the TypeScript vocabulary can also be written with `defineRule` from `@complinter/lang-typescript`, which types the visitor parameters and rejects unknown visitor names (`npm run typecheck` enforces this).
+
+`create(context)` is called **once per file**, not once per node, so state kept in the closure (for example a registry collected in a `Program` visitor) is shared by every visitor for that file.
+
 ### Rule requirements
 
 1. Use a stable ID in the format `framework/rule-name`.
-2. Add the rule to `src/rules/index.ts` so it is available to the engine.
+2. Add the rule to `packages/rules-gdpr/src/index.ts` so it is available to the engine.
 3. Keep detection deterministic and based on syntax that the parser exposes.
 4. Narrow the visitor before reporting. Check node types explicitly instead of relying on unchecked casts.
 5. Report the most useful source location available.
 6. Use a specific message that describes the observed pattern and risk.
 7. Avoid claiming that a rule proves legal compliance, encryption, authorization, consent, or deletion unless the implementation actually verifies it.
 8. Consider both decorator forms where relevant, such as `@Auth` and `@Auth()`.
-9. Do not silently change another rule's behavior. Add or update tests for any intentional behavior change.
+9. Users can suppress a finding with `// compliance-ignore-next-line <rule-id>`; keep the reported `line` on the code a user would put that comment above.
+10. Do not silently change another rule's behavior. Add or update tests for any intentional behavior change.
 
 ### Rule registry
 
-The rule registry is the source of truth for shipped rules. After adding a rule, update `src/rules/index.ts` and the default configuration in `src/config/config-loader.ts` when the rule should be enabled by default.
+The rule registry is the source of truth for shipped rules. After adding a rule, add it to `allRules` in `packages/rules-gdpr/src/index.ts` and give it an entry in `defaultSeverities` there (core itself knows no rule ids). A rule with no default severity is an error. The built-in rules are exposed as `gdprPlugin`, which the CLI always loads.
 
 If a rule is intentionally opt-in, document that clearly in the README and its rule page.
 
 ## Writing Tests
 
-Every rule should have a test file under `test/rules/gdpr/` that follows the implementation filename. For example:
+Every rule should have a test file under `packages/rules-gdpr/test/gdpr/` that follows the implementation filename. For example:
 
 ```text
-src/rules/gdpr/example-rule.ts
-test/rules/gdpr/example-rule.test.ts
-docs/rules/gdpr/example-rule.md
+packages/rules-gdpr/src/gdpr/example-rule.ts
+packages/rules-gdpr/test/gdpr/example-rule.test.ts
+packages/rules-gdpr/docs/rules/gdpr/example-rule.md
 ```
 
 At minimum, tests should cover:
@@ -144,8 +185,8 @@ Use the existing `node:test`, `node:assert`, parser, and `EngineRunner` pattern:
 import { test } from "node:test";
 import * as assert from "node:assert";
 import { parse } from "@typescript-eslint/typescript-estree";
-import { EngineRunner } from "@/src/engine/runner";
-import { exampleRule } from "@/src/rules/gdpr/example-rule";
+import { EngineRunner } from "@complinter/core";
+import { exampleRule } from "../../src/gdpr/example-rule";
 
 void test("Rule: gdpr/example-rule", () => {
   const runner = new EngineRunner([exampleRule]);
@@ -158,11 +199,11 @@ void test("Rule: gdpr/example-rule", () => {
 });
 ```
 
-Keep fixtures small. A test should make it obvious which syntax caused the report. Add an end-to-end fixture under `test/e2e/` only when the behavior depends on multiple rules or the complete scan pipeline.
+Keep fixtures small. A test should make it obvious which syntax caused the report. Add an end-to-end fixture under `packages/rules-gdpr/test/e2e/` only when the behavior depends on multiple rules or the complete scan pipeline.
 
 ## Documentation Requirements
 
-Each rule must have a matching page at `docs/rules/gdpr/<rule-file-name>.md`. The page should include:
+Each rule must have a matching page at `packages/rules-gdpr/docs/rules/gdpr/<rule-file-name>.md`. The page should include:
 
 - The exact rule ID.
 - What the rule detects.
@@ -197,12 +238,20 @@ npm run build
 For a rule-only change, run its focused test first:
 
 ```bash
-npx tsx --import tsconfig-paths/register --test test/rules/gdpr/example-rule.test.ts
+npm test -- packages/rules-gdpr/test/gdpr/example-rule.test.ts
 ```
 
 For a CLI or configuration change, include the relevant engine, config, reporter, file-discovery, or end-to-end tests as well.
 
 If a command cannot be run locally, state that in the pull request and include the reason. Do not hide failing tests or weaken assertions just to make a check pass.
+
+## Releases
+
+Versions and changelogs are managed with [changesets](https://github.com/changesets/changesets).
+
+- **Contributors:** a change that users of `complinter` can notice (a rule's behavior, CLI or config behavior, the plugin API, shipped docs) needs a changeset. Run `npm run changeset`, choose `complinter` and the bump, and write the entry for users. Commit the generated file in `.changeset/` with your change. Because the internal packages are bundled into `complinter`, a change to `core`, `lang-typescript` or `rules-gdpr` is a change to `complinter`. Pick `patch` for fixes, `minor` for new rules, options or plugin API additions, and `major` for anything that changes existing rule ids, default severities, `compliance.json` or CLI behavior. Tests, refactors and internal docs need none.
+- **Maintainers:** run `npm run version-packages` to apply the pending changesets (it updates versions, `packages/complinter/CHANGELOG.md` and the lockfile), review and merge that change, then publish a GitHub release tagged with the new version. `.github/workflows/publish.yml` does the rest. Only `complinter` publishes; `npm run release:check` fails the workflow if any other package becomes publishable.
+- While the plugin API is experimental, say so in the changeset when it changes, and bump `apiVersion` only for breaking changes.
 
 ## Pull Requests
 
@@ -213,6 +262,7 @@ A useful pull request description includes:
 - How the behavior was tested.
 - Any compatibility considerations.
 - Known limitations or follow-up work.
+- The changeset, when the change is user-facing.
 
 Keep the review surface easy to inspect. Include before-and-after examples for changes to rule detection or console output. Reviewers should be able to reproduce the reported behavior from the tests and documentation.
 

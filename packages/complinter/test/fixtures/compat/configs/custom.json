@@ -1,0 +1,8 @@
+{
+  "ignore": ["node_modules", "skipped", "bad/legacy.js"],
+  "rules": {
+    "gdpr/explicit-pii-logging": "warn",
+    "gdpr/missing-consent-flag": "off",
+    "gdpr/data-retention-missing": "error"
+  }
+}
