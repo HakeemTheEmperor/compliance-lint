@@ -44,6 +44,9 @@ jobs:
       - name: Use a recent npm (trusted publishing needs 11.5.1+)
         run: npm install -g npm@latest
 
+      - name: Show npm version
+        run: npm --version
+
       # The repo is a workspace; only the CLI package is published. It bundles
       # the internal @complinter/* packages, so they are never published.
       - name: Publish to npm
