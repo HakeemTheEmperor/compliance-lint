@@ -1,0 +1,33 @@
+{
+  "name": "@complinter/rules-gdpr",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The built-in GDPR rule set for complinter.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "docs"
+  ],
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@complinter/core": "*",
+    "@typescript-eslint/typescript-estree": "^8.69.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HakeemTheEmperor/compliance-lint.git",
+    "directory": "packages/rules-gdpr"
+  },
+  "engines": {
+    "node": ">=18.3.0"
+  }
+}
