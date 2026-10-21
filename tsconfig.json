@@ -1,20 +1,36 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "outDir": "./dist",
-    "rootDir": ".",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
     "baseUrl": ".",
-    "types": ["node"],
     "paths": {
-      "@/*": ["*"]
+      "@complinter/core": [
+        "packages/core/src/index.ts"
+      ],
+      "@complinter/lang-typescript": [
+        "packages/lang-typescript/src/index.ts"
+      ],
+      "@complinter/rules-gdpr": [
+        "packages/rules-gdpr/src/index.ts"
+      ],
+      "complinter/plugin-api": [
+        "packages/complinter/src/plugin-api.ts"
+      ],
+      "@complinter/plugin-nestjs": [
+        "packages/plugin-nestjs/src/index.ts"
+      ]
     }
   },
-  "include": ["src/**/*", "test/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "packages/*/src/**/*",
+    "packages/*/test/**/*.ts",
+    "packages/*/tsup.config.ts",
+    "tools/**/*.ts",
+    "tools/**/*.mts"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/dist",
+    "**/test/fixtures"
+  ]
 }

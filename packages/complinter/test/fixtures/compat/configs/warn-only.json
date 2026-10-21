@@ -1,0 +1,14 @@
+{
+  "rules": {
+    "gdpr/pii-unhashed-storage": "warn",
+    "gdpr/minimal-data-collected": "warn",
+    "gdpr/data-retention-missing": "warn",
+    "gdpr/explicit-pii-logging": "warn",
+    "gdpr/overly-broad-select": "warn",
+    "gdpr/missing-consent-flag": "warn",
+    "gdpr/missing-erasure-cascade": "warn",
+    "gdpr/third-party-pii-leak": "warn",
+    "gdpr/unencrypted-pii-column": "warn",
+    "gdpr/unprotected-export-route": "warn"
+  }
+}

@@ -46,7 +46,7 @@ npx complint [options] [directory]
 | ---- | ------------------------------------------------------------------------------------------- |
 | `0`  | No error-level violations (warnings do not fail the run)                                    |
 | `1`  | One or more error-level violations                                                          |
-| `2`  | Usage, config or file problems, e.g. a bad flag, malformed `compliance.json`, or a file that cannot be parsed |
+| `2`  | Usage, config, plugin or file problems, e.g. a bad flag, malformed `compliance.json`, a plugin that cannot be loaded, or a file that cannot be parsed |
 
 ### CI example (GitHub code scanning)
 
@@ -112,20 +112,43 @@ console.log(user); // compliance-ignore gdpr/explicit-pii-logging
 
 Omit the rule id to suppress every rule on that line. Use suppressions sparingly and explain why in a nearby comment.
 
+## Plugins (experimental)
+
+Plugins add rules (and, later, support for other languages) to complinter. List them in `compliance.json`:
+
+```json
+{
+  "plugins": ["complinter-plugin-acme", "./tools/our-rules.js"]
+}
+```
+
+- An entry is either the name of a package installed in your project, or a path that starts with `./` and stays inside the project (for private rules; the file must be plain JavaScript, CommonJS or ESM). Absolute paths, `..` and URLs are rejected.
+- Only plugins you list are loaded. A plugin that cannot be found, fails to load, targets another plugin API version, claims an existing namespace, or reuses a rule id stops the run with exit code 2.
+- Plugin rules use their plugin's namespace (`acme/some-rule`) and are configured like built-in rules under `rules`. A plugin may declare default severities; rules without one are errors.
+- Plugins run with the same permissions as your project. Only list code you trust.
+
+### Official plugins
+
+| Plugin                                                  | Rules                                                                          | Status                              |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------- |
+| [`@complinter/plugin-nestjs`](packages/plugin-nestjs/) | `nestjs/pii-in-url`, `nestjs/unserialized-sensitive-response` (NestJS projects) | Experimental, not yet on npm (see its README) |
+
+The plugin API is **experimental** and may change in minor releases until it is frozen. To write your own plugin, see the [plugin authoring guide](docs/plugins.md).
+
 ## Included Rules (MVP)
 
 | Rule                                                                           | Purpose                           | Details                                                                                                                 |
 | ------------------------------------------------------------------------------ | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| [`gdpr/minimal-data-collected`](docs/rules/gdpr/minimal-data-collected.md)     | Require structured request bodies | Flags route methods with `@Body()` parameters that have no type or use `any`.                                           |
-| [`gdpr/overly-broad-select`](docs/rules/gdpr/overly-broad-select.md)           | Limit query fields                | Flags `find`, `findOne`, `findAndCount`, and `findAll` calls on repository/model/service-like receivers without an options object containing `select`.             |
-| [`gdpr/data-retention-missing`](docs/rules/gdpr/data-retention-missing.md)     | Require retention signals         | Checks `@Entity()` classes and classes extending `Model` for recognized retention fields or decorators.                 |
-| [`gdpr/explicit-pii-logging`](docs/rules/gdpr/explicit-pii-logging.md)         | Reduce sensitive logging          | Flags known sensitive identifiers and request/user properties passed to recognized logger calls.                        |
-| [`gdpr/missing-consent-flag`](docs/rules/gdpr/missing-consent-flag.md)         | Require consent-related DTOs      | Checks registration-like methods for a parameter type that has a consent property (in a class declared in the same file) or a consent keyword in its name.                            |
-| [`gdpr/missing-erasure-cascade`](docs/rules/gdpr/missing-erasure-cascade.md)   | Preserve deletion propagation     | Flags `ManyToOne`, `OneToOne`, and `BelongsTo` relations without `onDelete` of `CASCADE` or `SET NULL`.                                 |
-| [`gdpr/pii-unhashed-storage`](docs/rules/gdpr/pii-unhashed-storage.md)         | Protect highly sensitive fields   | Flags exact field names such as `password`, `ssn`, `pin`, and `social_security` without an accepted security decorator. |
-| [`gdpr/third-party-pii-leak`](docs/rules/gdpr/third-party-pii-leak.md)         | Review outbound PII transfers     | Flags known payload identifiers and request/user properties passed to recognized HTTP clients.                          |
-| [`gdpr/unencrypted-pii-column`](docs/rules/gdpr/unencrypted-pii-column.md)     | Encrypt high-risk columns         | Flags exact high-risk field names in TypeORM entities or Sequelize models without encryption or a transformer.          |
-| [`gdpr/unprotected-export-route`](docs/rules/gdpr/unprotected-export-route.md) | Protect data exports              | Flags export-like methods or route paths without a recognized auth decorator.                                           |
+| [`gdpr/minimal-data-collected`](packages/rules-gdpr/docs/rules/gdpr/minimal-data-collected.md)     | Require structured request bodies | Flags route methods with `@Body()` parameters that have no type or use `any`.                                           |
+| [`gdpr/overly-broad-select`](packages/rules-gdpr/docs/rules/gdpr/overly-broad-select.md)           | Limit query fields                | Flags `find`, `findOne`, `findAndCount`, and `findAll` calls on repository/model/service-like receivers without an options object containing `select`.             |
+| [`gdpr/data-retention-missing`](packages/rules-gdpr/docs/rules/gdpr/data-retention-missing.md)     | Require retention signals         | Checks `@Entity()` classes and classes extending `Model` for recognized retention fields or decorators.                 |
+| [`gdpr/explicit-pii-logging`](packages/rules-gdpr/docs/rules/gdpr/explicit-pii-logging.md)         | Reduce sensitive logging          | Flags known sensitive identifiers and request/user properties passed to recognized logger calls.                        |
+| [`gdpr/missing-consent-flag`](packages/rules-gdpr/docs/rules/gdpr/missing-consent-flag.md)         | Require consent-related DTOs      | Checks registration-like methods for a parameter type that has a consent property (in a class declared in the same file) or a consent keyword in its name.                            |
+| [`gdpr/missing-erasure-cascade`](packages/rules-gdpr/docs/rules/gdpr/missing-erasure-cascade.md)   | Preserve deletion propagation     | Flags `ManyToOne`, `OneToOne`, and `BelongsTo` relations without `onDelete` of `CASCADE` or `SET NULL`.                                 |
+| [`gdpr/pii-unhashed-storage`](packages/rules-gdpr/docs/rules/gdpr/pii-unhashed-storage.md)         | Protect highly sensitive fields   | Flags exact field names such as `password`, `ssn`, `pin`, and `social_security` without an accepted security decorator. |
+| [`gdpr/third-party-pii-leak`](packages/rules-gdpr/docs/rules/gdpr/third-party-pii-leak.md)         | Review outbound PII transfers     | Flags known payload identifiers and request/user properties passed to recognized HTTP clients.                          |
+| [`gdpr/unencrypted-pii-column`](packages/rules-gdpr/docs/rules/gdpr/unencrypted-pii-column.md)     | Encrypt high-risk columns         | Flags exact high-risk field names in TypeORM entities or Sequelize models without encryption or a transformer.          |
+| [`gdpr/unprotected-export-route`](packages/rules-gdpr/docs/rules/gdpr/unprotected-export-route.md) | Protect data exports              | Flags export-like methods or route paths without a recognized auth decorator.                                           |
 
 Each rule page includes accepted examples and known limitations. These rules use names, decorators, and local syntax patterns; they do not perform data-flow analysis or prove that a runtime control is effective.
 
@@ -139,18 +162,23 @@ npm run lint
 npm run build
 ```
 
+`npm test` includes a packaging test (`packages/complinter/test/pack`) that packs the CLI, installs the tarball into a clean temporary project and runs it with CJS, ESM and package plugins. It needs the npm registry (or a warm npm cache) and about ten seconds; run `npm run build` first.
+
+The repository is an npm workspaces monorepo (`packages/core`, `lang-typescript`, `rules-gdpr`, `plugin-nestjs` and the `complinter` CLI). See [CONTRIBUTING.md](CONTRIBUTING.md) for the layout. `npm test` accepts test file paths to run a subset, for example `npm test -- packages/core/test/runner.test.ts`.
+
 ## Publishing
 
 Publishing is automated by [`.github/workflows/publish.yml`](.github/workflows/publish.yml) when a GitHub release is published.
 
-Before the first release:
+Only `complinter` is published; the internal packages are bundled into it and `@complinter/plugin-nestjs` stays in this repository for now. Versions and changelogs are managed with [changesets](https://github.com/changesets/changesets):
 
-1. Create the `complinter` package on npm, or confirm that the package is owned by the publishing account.
-2. In npm package settings, add a trusted publisher for this repository, the `main` branch, and the `publish.yml` workflow.
-3. Update the version in `package.json` and commit it to `main`.
-4. Create and publish a GitHub release whose tag matches that version, for example `v1.0.1` if the version in `package.json` is `1.0.1`.
+1. Every user-facing change adds a changeset with `npm run changeset` (see [CONTRIBUTING.md](CONTRIBUTING.md#releases)).
+2. To release, run `npm run version-packages` on a branch, review the version bump and `packages/complinter/CHANGELOG.md`, and merge it to `main`.
+3. Create and publish a GitHub release whose tag matches the new `complinter` version, for example `v1.1.0`. The workflow lints, tests, builds, runs `npm run release:check` (tag matches the version, nothing but `complinter` is publishable, build output exists) and publishes.
 
-The workflow uses npm trusted publishing with OIDC and package provenance, so no `NPM_TOKEN` repository secret is required. To publish manually instead, run `npm login`, then `npm publish --access public` from the repository root.
+Once, before the first release: make sure the `complinter` package on npm is owned by the publishing account and that its trusted publisher settings name this repository and the `publish.yml` workflow.
+
+The workflow uses npm trusted publishing with OIDC and package provenance, so no `NPM_TOKEN` repository secret is required. To publish manually instead, run `npm login`, `npm run build`, then `npm publish --workspace complinter --access public` from the repository root.
 
 ## 🤝 Contributing
 
